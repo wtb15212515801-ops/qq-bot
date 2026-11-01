@@ -1,0 +1,59 @@
+{
+  "onebot": {
+    "url": "ws://127.0.0.1:3001",
+    "accessToken": "",
+    "selfId": 0,
+    "reconnectMs": 3000
+  },
+  "llm": {
+    "provider": "openai",
+    "baseUrl": "https://api.deepseek.com",
+    "apiKey": "",
+    "model": "deepseek-chat",
+    "temperature": 1.0,
+    "maxTokens": 120,
+    "timeoutMs": 30000
+  },
+  "persona": {
+    "file": "persona.md",
+    "name": "小满",
+    "aliases": ["小满", "满仔"],
+    "interests": ["游戏", "番剧", "考研", "猫"]
+  },
+  "behavior": {
+    "replyThreshold": 8.5,
+    "spontaneousChance": 0.015,
+    "maxContextMessages": 25,
+    "expireSeconds": 45,
+    "quietHours": ["23:30", "08:00"],
+    "replyInQuietHoursWhenAt": false,
+    "privateReply": true
+  },
+  "timing": {
+    "scale": 1,
+    "readDelayMs": [600, 2500],
+    "typingMsPerChar": [220, 520],
+    "typingMaxMs": 8000,
+    "gapBetweenSegmentsMs": [500, 1500],
+    "maxSegments": 3,
+    "maxCharsPerSegment": 45
+  },
+  "limits": {
+    "minGapSeconds": 15,
+    "maxPerMinute": 3,
+    "maxPerHour": 12
+  },
+  "groups": {},
+  "safety": {
+    "blockedWords": [],
+    "blockedUsers": [],
+    "allowGroups": [],
+    "denyGroups": []
+  },
+  "storage": {
+    "dir": "data"
+  },
+  "log": {
+    "level": "info"
+  }
+}

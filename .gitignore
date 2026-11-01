@@ -1,0 +1,17 @@
+node_modules/
+
+# 本地数据与私密配置（不要提交）
+data/
+config.json
+app.json
+persona.md
+*.log
+*.corrupt
+
+# 构建产物
+dist/
+QQ BOT.exe
+*.exe
+*.pdb
+installer/payload.zip
+installer/*.exe

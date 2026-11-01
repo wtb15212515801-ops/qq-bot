@@ -1,0 +1,22 @@
+{
+  "name": "qq-humanlike-bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A human-like QQ group chat bot (OneBot 11 + LLM), zero dependencies",
+  "main": "main.js",
+  "scripts": {
+    "init": "node src/bootstrap.js",
+    "groups": "node tools/groups.js",
+    "memory": "node tools/memory.js",
+    "tidy": "node tools/tidy.js",
+    "levels": "node tools/level-check.js",
+    "soak": "node tools/soak.js",
+    "start": "node main.js",
+    "dryrun": "node tools/dryrun.js",
+    "test": "node --test \"test/*.test.js\""
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
