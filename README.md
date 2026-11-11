@@ -4,6 +4,9 @@
 
 **零依赖**：只要有 Node.js 22+，`node main.js` 就能跑。不需要 Python、Docker、数据库。
 
+> 不想装任何东西？这里有个**网页版**，打开就能聊：<https://wtb15212515801-ops.github.io/qq-bot/>
+> 纯前端一个 HTML 文件，不填 Key 是演示模式，填自己的 Key 就是真的模型。
+
 ---
 
 ## 安装（拿到安装包的人看这里）
@@ -40,6 +43,34 @@ INFO  群888888 张三：@小满 小满你要不要 → 回 (10.43/8.5 被@)
 ```bash
 node tools/prompt.js
 ```
+
+---
+
+## 网页版（不用装任何东西）
+
+`web/index.html` 是同一个「脑子」，换了个壳：单文件、纯前端、没有任何依赖。
+
+```
+在线：  https://wtb15212515801-ops.github.io/qq-bot/
+离线：  双击 web/index.html（file:// 也能用，不用起服务器）
+```
+
+**两种模式**
+
+| 模式 | 怎么进 | 说明 |
+|---|---|---|
+| 演示 | 直接打开 | 本地规则脚本回复，**断网也能用**，用来演示性格和交互 |
+| 真聊 | 右上角「设置」填自己的 DeepSeek Key | 浏览器直接调 `api.deepseek.com`，**不需要代理** |
+
+Key 只写进你自己浏览器的 `localStorage`，不会上传到任何地方；换台电脑要重新填。
+
+**网页版为什么连不上 QQ**
+
+真机版是 NapCat 把 QQ 客户端包成 OneBot 接口，再让 Node 进程去连——
+这两步都要在你自己的 Windows 上跑，浏览器做不到。所以网页版只保留「说话的那一层」：
+人设、记忆、心情、拆句、命中率统计，全部在浏览器里重写了一遍。
+
+想让它真的在群里说话，还是得装桌面版。
 
 ---
 
@@ -185,6 +216,8 @@ qq-bot/
 ├─ main.js                入口（单实例保护 + 全局异常兜底）
 ├─ config.json            配置（由 config.example.json 复制）
 ├─ persona.md             人设（由 persona.example.md 复制）
+├─ web/
+│  └─ index.html          网页版（单文件，可直接部署 GitHub Pages）
 ├─ src/
 │  ├─ onebot.js           OneBot 11 WebSocket 客户端
 │  ├─ pipeline.js         主流程编排

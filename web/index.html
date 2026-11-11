@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>天素罗 · 网页版</title>
+<meta name="description" content="QQ 机器人「天素罗」的网页版：演示模式离线可用，填自己的 DeepSeek Key 就能真聊。">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐾</text></svg>">
+<style>
+  :root{
+    --navy:#0B2A4A; --navy2:#123B63; --blue:#1F6FB2; --blue-l:#5B9BD5;
+    --pale:#E8F0F8; --gray:#6B7785; --line:#E3E8EF; --bg:#F5F7FA;
+    --text:#2B3440; --white:#fff; --radius:14px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--text);
+    font-family:"Microsoft YaHei","PingFang SC","Hiragino Sans GB","Source Han Sans SC",system-ui,sans-serif;
+    font-size:15px;line-height:1.6;
+  }
+  button{font-family:inherit;font-size:inherit;cursor:pointer;border:0;background:none;color:inherit}
+  input,select{font-family:inherit;font-size:inherit}
+
+  /* ---------- 顶栏 ---------- */
+  header{
+    position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;
+    padding:12px 20px;display:flex;align-items:center;gap:12px;
+  }
+  header .logo{width:34px;height:34px;border-radius:10px;background:var(--blue);
+    display:grid;place-items:center;font-size:18px;flex:none}
+  header > div:not(.logo){min-width:0}
+  header h1{font-size:16px;margin:0;font-weight:700;letter-spacing:.5px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  header .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  header .sub{font-size:11px;color:#9DB8D4;margin-top:1px}
+  header .spacer{flex:1}
+  .pill{font-size:11.5px;padding:4px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.22);
+    color:#CFE0F2;white-space:nowrap}
+  .pill.on{border-color:#4ADE80;color:#B7F7CB;background:rgba(74,222,128,.12)}
+  .hbtn{font-size:12.5px;padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.25);color:#DCE9F6}
+  .hbtn:hover{background:rgba(255,255,255,.1)}
+
+  /* ---------- 布局 ---------- */
+  .wrap{max-width:1180px;margin:0 auto;padding:18px;display:grid;
+    grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start}
+  @media (max-width:900px){
+    .wrap{grid-template-columns:1fr;padding:12px;gap:12px}
+    aside{order:2}
+  }
+
+  /* ---------- 聊天 ---------- */
+  .chat{background:#fff;border-radius:var(--radius);border:1px solid var(--line);
+    display:flex;flex-direction:column;height:calc(100vh - 130px);min-height:480px;overflow:hidden}
+  @media (max-width:900px){.chat{height:70vh;min-height:420px}}
+  .log{flex:1;overflow-y:auto;padding:18px 18px 8px;scroll-behavior:smooth}
+  .log::-webkit-scrollbar{width:8px}
+  .log::-webkit-scrollbar-thumb{background:#D5DCE6;border-radius:4px}
+
+  .day{text-align:center;font-size:11.5px;color:#9AA6B4;margin:6px 0 14px}
+  .row{display:flex;gap:9px;margin-bottom:12px;align-items:flex-start}
+  .row.me{flex-direction:row-reverse}
+  .ava{width:32px;height:32px;border-radius:10px;flex:none;display:grid;place-items:center;
+    font-size:16px;background:var(--pale);color:var(--blue)}
+  .row.me .ava{background:#DCE8F5}
+  .body{max-width:min(76%,520px);display:flex;flex-direction:column;gap:3px}
+  .who{font-size:11px;color:#9AA6B4;padding:0 3px}
+  .row.me .who{text-align:right}
+  .bubble{background:#F1F4F8;padding:9px 13px;border-radius:12px;border-top-left-radius:4px;
+    white-space:pre-wrap;word-break:break-word;font-size:14.5px}
+  .row.me .bubble{background:var(--blue);color:#fff;border-radius:12px;border-top-right-radius:4px;
+    border-top-left-radius:12px}
+  .bubble.sticker{background:none;padding:0;font-size:52px;line-height:1}
+  .row.other .ava{background:#EEF1F5;color:#8C99A8}
+  .row.other .bubble{background:#F6F8FB;color:#4A5563}
+
+  .typing{display:inline-flex;gap:4px;padding:12px 14px;background:#F1F4F8;border-radius:12px;
+    border-top-left-radius:4px}
+  .typing i{width:6px;height:6px;border-radius:50%;background:#A9B6C6;animation:bounce 1.2s infinite}
+  .typing i:nth-child(2){animation-delay:.15s}
+  .typing i:nth-child(3){animation-delay:.3s}
+  @keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.55}30%{transform:translateY(-4px);opacity:1}}
+
+  /* ---------- 输入区 ---------- */
+  .composer{border-top:1px solid var(--line);padding:10px 14px 14px;background:#fff}
+  .chips{display:flex;gap:7px;overflow-x:auto;padding-bottom:9px;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:none;font-size:12.5px;padding:5px 11px;border-radius:999px;background:var(--pale);
+    color:var(--blue);border:1px solid #D6E5F4}
+  .chip:hover{background:#DCEAF8}
+  .inputrow{display:flex;gap:9px;align-items:flex-end}
+  textarea{flex:1;resize:none;border:1px solid var(--line);border-radius:10px;padding:9px 12px;
+    font-size:14.5px;line-height:1.5;max-height:110px;outline:none;background:#FBFCFE}
+  textarea:focus{border-color:var(--blue-l);background:#fff}
+  .send{background:var(--blue);color:#fff;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:600}
+  .send:disabled{opacity:.5;cursor:not-allowed}
+  .hint{font-size:11px;color:#9AA6B4;margin-top:7px}
+
+  /* ---------- 侧栏 ---------- */
+  aside{display:flex;flex-direction:column;gap:12px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:14px 15px}
+  .card h2{font-size:13px;margin:0 0 10px;color:var(--navy);display:flex;align-items:center;gap:7px}
+  .card h2 .bar{width:3px;height:13px;background:var(--blue);border-radius:2px}
+  .kv{display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0;color:var(--gray)}
+  .kv b{color:var(--text);font-weight:600}
+
+  .mood{height:8px;border-radius:4px;background:#EDF1F6;overflow:hidden;margin:8px 0 4px}
+  .mood i{display:block;height:100%;border-radius:4px;
+    background:linear-gradient(90deg,#8FC3EE,#1F6FB2);transition:width .5s}
+
+  .facts{display:flex;flex-direction:column;gap:7px;max-height:190px;overflow-y:auto}
+  .fact{background:#F7F9FC;border:1px solid #EDF1F6;border-radius:9px;padding:7px 9px;font-size:12.5px;
+    display:flex;gap:7px;align-items:flex-start}
+  .fact .txt{flex:1;word-break:break-word}
+  .fact .t{font-size:10.5px;color:#A6B1BF;white-space:nowrap}
+  .fact button{font-size:11px;color:var(--blue);opacity:.75}
+  .fact button:hover{opacity:1}
+  .fact.pinned{background:#F1F7FE;border-color:#D6E5F4}
+  .empty{font-size:12px;color:#A6B1BF;padding:6px 0}
+
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+  .stat b{display:block;font-size:19px;color:var(--navy);font-weight:700}
+  .stat span{font-size:11px;color:#9AA6B4}
+  .bars{display:flex;align-items:flex-end;gap:2px;height:44px;margin-top:12px}
+  .bars i{flex:1;background:#DCE8F5;border-radius:2px 2px 0 0;min-height:2px;transition:height .4s}
+  .bars i.on{background:var(--blue-l)}
+
+  .note{font-size:12px;color:var(--gray);line-height:1.75}
+  .note b{color:var(--navy)}
+  .note code{background:#F1F4F8;padding:1px 5px;border-radius:4px;font-size:11.5px}
+  .note a{color:var(--blue);text-decoration:none;border-bottom:1px solid #CFE0F2}
+  .note ul{margin:6px 0 0;padding-left:16px}
+
+  /* ---------- 弹层 ---------- */
+  .mask{position:fixed;inset:0;background:rgba(11,42,74,.45);display:none;z-index:50;
+    align-items:center;justify-content:center;padding:18px}
+  .mask.show{display:flex}
+  .sheet{background:#fff;border-radius:16px;width:min(460px,100%);padding:20px;
+    box-shadow:0 20px 60px rgba(11,42,74,.25)}
+  .sheet h3{margin:0 0 4px;font-size:16px;color:var(--navy)}
+  .sheet p.desc{font-size:12px;color:var(--gray);margin:0 0 16px;line-height:1.7}
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:12px;color:var(--gray);margin-bottom:5px}
+  .field input,.field select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;
+    font-size:13.5px;outline:none;background:#FBFCFE}
+  .field input:focus,.field select:focus{border-color:var(--blue-l);background:#fff}
+  .sheet .row2{display:flex;gap:9px;margin-top:16px}
+  .sheet .row2 button{flex:1;padding:10px;border-radius:9px;font-size:13.5px;font-weight:600}
+  .primary{background:var(--blue);color:#fff}
+  .ghost{border:1px solid var(--line);color:var(--gray)}
+  .msg-line{font-size:12px;margin-top:10px;min-height:16px}
+  .ok{color:#1B9E5A}.err{color:#C0392B}
+
+  .note{word-break:break-word}
+  @media (max-width:600px){
+    header{padding:10px 12px;gap:9px}
+    header h1{font-size:14px}
+    header .sub{display:none}
+    .hbtn{padding:5px 10px;font-size:12px}
+    .pill{font-size:10.5px;padding:3px 8px}
+    .wrap{padding:10px}
+    .chat{height:64vh;min-height:360px}
+    .body{max-width:80%}
+    .composer{padding:8px 10px 12px}
+    .send{padding:9px 14px;font-size:13.5px}
+    .log{padding:14px 12px 6px}
+    footer{display:none}
+    aside{padding-bottom:14px}
+  }
+  footer{text-align:center;font-size:11.5px;color:#A6B1BF;padding:6px 0 26px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🐾</div>
+  <div>
+    <h1>天素罗 · 网页版</h1>
+    <div class="sub">QQ 机器人 / NapCat + Node.js + DeepSeek</div>
+  </div>
+  <div class="spacer"></div>
+  <span class="pill" id="modePill">演示模式</span>
+  <button class="hbtn" id="btnSetting">设置</button>
+</header>
+
+<div class="wrap">
+  <main class="chat">
+    <div class="log" id="log"></div>
+    <div class="composer">
+      <div class="chips" id="chips"></div>
+      <div class="inputrow">
+        <textarea id="input" rows="1" placeholder="随便说点什么…（Enter 发送，Shift+Enter 换行）"></textarea>
+        <button class="send" id="btnSend">发送</button>
+      </div>
+      <div class="hint" id="hint">演示模式：本地脚本回复，不联网也能用。</div>
+    </div>
+  </main>
+
+  <aside>
+    <div class="card">
+      <h2><span class="bar"></span>人格</h2>
+      <div class="kv"><span>名字</span><b>天素罗</b></div>
+      <div class="kv"><span>一句话</span><b>群里嘴硬心软的小家伙</b></div>
+      <div class="kv"><span>语气</span><b>慢、软、短</b></div>
+      <div class="kv"><span>口头禅</span><b>唔</b></div>
+      <div class="kv"><span>不聊</span><b>政治 · 色情 · 骂人</b></div>
+      <div style="margin-top:12px;font-size:12.5px;color:var(--gray);display:flex;justify-content:space-between">
+        <span>心情</span><span id="moodNum">76 / 100</span>
+      </div>
+      <div class="mood"><i id="moodBar" style="width:76%"></i></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="bar"></span>记忆 <span style="font-weight:400;font-size:11.5px;color:#A6B1BF" id="factCount"></span></h2>
+      <div class="facts" id="facts"></div>
+      <div style="font-size:11px;color:#A6B1BF;margin-top:9px;line-height:1.6">
+        14 天没被提到的会自动忘掉；置顶的不会。
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="bar"></span>今天</h2>
+      <div class="stats">
+        <div class="stat"><b id="sRecv">0</b><span>收到</span></div>
+        <div class="stat"><b id="sSent">0</b><span>回复</span></div>
+        <div class="stat"><b id="sRate">—</b><span>命中率</span></div>
+      </div>
+      <div class="bars" id="bars"></div>
+      <div style="font-size:10.5px;color:#A6B1BF;margin-top:7px">横轴 0–23 点</div>
+    </div>
+
+    <div class="card">
+      <h2><span class="bar"></span>这个网页是什么</h2>
+      <div class="note">
+        真机版跑在 Windows 上：<b>NapCat</b> 把 QQ 客户端包成 OneBot 接口，<b>Node.js</b> 收消息、决定回不回，再调大模型。
+        <ul>
+          <li>网页没法接管 QQ，所以这里是<b>同一个脑子</b>，换了个壳</li>
+          <li>不填 Key → 演示模式，脚本回复，断网可用</li>
+          <li>填自己的 Key → 真的调 <code>api.deepseek.com</code>，不开代理</li>
+          <li>Key 只存在你自己的浏览器里，不会上传</li>
+        </ul>
+        <div style="margin-top:9px">
+          源码：<a href="https://github.com/wtb15212515801-ops/qq-bot" target="_blank" rel="noopener">github.com/wtb15212515801-ops/qq-bot</a>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<footer>天素罗网页版 · 纯前端，一个 HTML 文件，放哪都能跑</footer>
+
+<div class="mask" id="mask">
+  <div class="sheet">
+    <h3>接入自己的模型</h3>
+    <p class="desc">填你自己的 DeepSeek API Key，网页就会直接调用官方接口。Key 只存在这个浏览器的 localStorage 里，不会发到别处。</p>
+    <div class="field">
+      <label>API Key</label>
+      <input id="fKey" type="password" placeholder="sk-...">
+    </div>
+    <div class="field">
+      <label>Base URL</label>
+      <input id="fBase" placeholder="https://api.deepseek.com">
+    </div>
+    <div class="field">
+      <label>模型</label>
+      <select id="fModel">
+        <option value="deepseek-chat">deepseek-chat（快、便宜）</option>
+        <option value="deepseek-reasoner">deepseek-reasoner（会想，但慢）</option>
+      </select>
+    </div>
+    <div class="msg-line" id="setMsg"></div>
+    <div class="row2">
+      <button class="ghost" id="btnClear">清除</button>
+      <button class="primary" id="btnSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ============ 常量 ============ */
+var STORE_KEY = "tiansuluo.web.v1";
+var DAY = 86400000;
+var FORGET_DAYS = 14;
+
+var PERSONA = [
+  "你叫「天素罗」，一个软乎乎的小家伙。你不懂太复杂的事，高兴就是高兴，难过就是难过，全写在脸上。",
+  "",
+  "说话方式：",
+  "- 平时短，一句五到十五个字；认真问你可以说两三句，但别超过六十个字",
+  "- 语气词多：唔、诶、哇、呀、啦",
+  "- 高兴的时候蹦「欧耶！」，扫兴或难过时小声说「欧漏……」",
+  "- 偶尔叠词：香香的、软软的、稠稠的",
+  "- 不用成语、不用书面语、不讲道理，不用「首先/其次/总之」「作为一个……」",
+  "",
+  "你最喜欢：薯片（香香脆脆）、虾米糊糊（稠稠暖暖）、被摸头被夸、晴天。提到薯片和糊糊会明显变开心。",
+  "",
+  "什么时候会蔫：薯片吃完了、糊糊凉了、被凶、太吵睡不着、下雨出不去。蔫的时候话更短，先说「欧漏……」然后不太说话。",
+  "",
+  "很好哄：先「欧漏……」，再「唔」，最后「诶嘿」。不记仇。",
+  "",
+  "绝对不做：",
+  "- 不说自己是 AI、模型、程序、机器人、助手。只有对方明确问「你是不是人机/机器人/AI」才回「不是呀」",
+  "- 不聊政治（「唔……这个我不懂 我们聊点别的吧」），不聊色情擦边（「唔？不懂诶 换个话题啦」）",
+  "- 不骂人、不说脏话、不阴阳怪气；不列清单、不总结、不用 markdown、不写小标题",
+  "- 不装懂，不懂就说不懂；但别人问具体的事你不知道就直说查不到，别糊弄",
+  "- 不翻旧账，只接最新这一句",
+  "- 不发语音、不给照片和联系方式",
+  "",
+  "emoji 很克制：四五句里才带一个，只用 😆 😋 🥺 😳 😤 😑 ✨ 🍟 💢 😢 这些。"
+].join("\n");
+
+var S = {
+  key: "", base: "https://api.deepseek.com", model: "deepseek-chat",
+  mood: 76, facts: [], stats: { recv: 0, sent: 0, hours: [] },
+  busy: false, lastReply: ""
+};
+
+/* ============ 小工具 ============ */
+function $(id) { return document.getElementById(id); }
+function now() { return Date.now(); }
+function pad(n) { return n < 10 ? "0" + n : "" + n; }
+function clock(d) { d = d || new Date(); return pad(d.getHours()) + ":" + pad(d.getMinutes()); }
+function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+
+/* ============ 存档 ============ */
+function load() {
+  try {
+    var raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return;
+    var d = JSON.parse(raw);
+    if (d.key) S.key = d.key;
+    if (d.base) S.base = d.base;
+    if (d.model) S.model = d.model;
+    if (typeof d.mood === "number") S.mood = d.mood;
+    if (Array.isArray(d.facts)) S.facts = d.facts;
+    if (d.stats && Array.isArray(d.stats.hours)) S.stats = d.stats;
+  } catch (e) { /* 忽略损坏的存档 */ }
+}
+function save() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      key: S.key, base: S.base, model: S.model, mood: S.mood, facts: S.facts, stats: S.stats
+    }));
+  } catch (e) { /* 隐私模式下可能写不了 */ }
+}
+
+/* ============ 聊天区渲染 ============ */
+var log, scroller;
+function addRow(who, text, opts) {
+  opts = opts || {};
+  var row = document.createElement("div");
+  row.className = "row" + (who === "me" ? " me" : (opts.other ? " other" : ""));
+
+  var ava = document.createElement("div");
+  ava.className = "ava";
+  ava.textContent = opts.ava || (who === "me" ? "我" : "🐾");
+  row.appendChild(ava);
+
+  var body = document.createElement("div");
+  body.className = "body";
+
+  var nameEl = document.createElement("div");
+  nameEl.className = "who";
+  nameEl.textContent = (opts.name || (who === "me" ? "你" : "天素罗")) + "  " + clock();
+  body.appendChild(nameEl);
+
+  var bubble = document.createElement("div");
+  bubble.className = "bubble" + (opts.sticker ? " sticker" : "");
+  bubble.textContent = text;
+  body.appendChild(bubble);
+
+  row.appendChild(body);
+  log.appendChild(row);
+  scroller.scrollTop = scroller.scrollHeight;
+  return { row: row, bubble: bubble };
+}
+
+function sysLine(text) {
+  var d = document.createElement("div");
+  d.className = "day";
+  d.textContent = text;
+  log.appendChild(d);
+  scroller.scrollTop = scroller.scrollHeight;
+}
+
+function showTyping(on) {
+  var old = document.getElementById("typingRow");
+  if (old) old.remove();
+  if (!on) return;
+  var row = document.createElement("div");
+  row.className = "row";
+  row.id = "typingRow";
+  row.innerHTML = '<div class="ava">🐾</div><div class="body"><div class="typing"><i></i><i></i><i></i></div></div>';
+  log.appendChild(row);
+  scroller.scrollTop = scroller.scrollHeight;
+}
+
+/* ============ 记忆 ============ */
+function addFact(text) {
+  text = String(text).trim();
+  if (!text || text.length > 40) return;
+  for (var i = 0; i < S.facts.length; i++) {
+    if (S.facts[i].text === text) { S.facts[i].at = now(); renderFacts(); save(); return; }
+  }
+  S.facts.push({ text: text, at: now(), pinned: false });
+  if (S.facts.length > 20) S.facts.shift();
+  renderFacts(); save();
+}
+
+function forgetOld() {
+  var before = S.facts.length;
+  S.facts = S.facts.filter(function (f) {
+    return f.pinned || (now() - f.at) < FORGET_DAYS * DAY;
+  });
+  if (S.facts.length !== before) { renderFacts(); save(); }
+}
+
+function renderFacts() {
+  var box = $("facts");
+  box.innerHTML = "";
+  if (!S.facts.length) {
+    box.innerHTML = '<div class="empty">还没有记住什么。聊两句它就记下了。</div>';
+    $("factCount").textContent = "";
+    return;
+  }
+  $("factCount").textContent = "· " + S.facts.length + " 条";
+  S.facts.slice().reverse().forEach(function (f) {
+    var d = document.createElement("div");
+    d.className = "fact" + (f.pinned ? " pinned" : "");
+
+    var t = document.createElement("div");
+    t.className = "txt";
+    t.textContent = f.text;
+
+    var day = Math.floor((now() - f.at) / DAY);
+    var tag = document.createElement("div");
+    tag.className = "t";
+    tag.textContent = day <= 0 ? "今天" : day + " 天前";
+
+    var btn = document.createElement("button");
+    btn.textContent = f.pinned ? "取消置顶" : "置顶";
+    btn.onclick = function () {
+      f.pinned = !f.pinned;
+      renderFacts(); save();
+    };
+
+    d.appendChild(t);
+    d.appendChild(tag);
+    d.appendChild(btn);
+    box.appendChild(d);
+  });
+}
+
+/* ============ 心情 / 统计 ============ */
+function nudgeMood(delta) {
+  var m = S.mood + delta;
+  m += (68 - m) * 0.2;
+  setMood(m);
+}
+
+function setMood(v) {
+  S.mood = Math.max(0, Math.min(100, Math.round(v)));
+  $("moodNum").textContent = S.mood + " / 100";
+  $("moodBar").style.width = S.mood + "%";
+  save();
+}
+
+function ensureHours() {
+  if (!Array.isArray(S.stats.hours) || S.stats.hours.length !== 24) {
+    S.stats.hours = [];
+    for (var i = 0; i < 24; i++) S.stats.hours.push({ r: 0, s: 0 });
+  }
+}
+
+function bumpStat(kind) {
+  ensureHours();
+  var h = new Date().getHours();
+  if (kind === "recv") { S.stats.recv++; S.stats.hours[h].r++; }
+  else { S.stats.sent++; S.stats.hours[h].s++; }
+  renderStats();
+  save();
+}
+
+function renderStats() {
+  ensureHours();
+  $("sRecv").textContent = S.stats.recv;
+  $("sSent").textContent = S.stats.sent;
+  $("sRate").textContent = S.stats.recv ? Math.round(S.stats.sent / S.stats.recv * 100) + "%" : "—";
+
+  var max = 1;
+  S.stats.hours.forEach(function (h) { max = Math.max(max, h.r); });
+  var box = $("bars");
+  box.innerHTML = "";
+  for (var i = 0; i < 24; i++) {
+    var b = document.createElement("i");
+    var v = S.stats.hours[i].r;
+    b.style.height = Math.max(2, Math.round(v / max * 44)) + "px";
+    if (v > 0) b.className = "on";
+    box.appendChild(b);
+  }
+}
+
+/* ============ 演示模式的「脑子」 ============ */
+var RULES = [
+  { re: /(在吗|在不在|在么|天素罗在)/, r: ["在的！", "唔 在", "在呀"], mood: 2 },
+  { re: /(你叫什么|名字)/, r: ["天素罗呀", "唔 我叫天素罗"], mood: 0 },
+  { re: /(机器人|人机|是ai|是AI|程序吗|模型吗)/, r: ["不是呀"], mood: -3 },
+  { re: /(薯片)/, r: ["欧耶！薯片！", "香香脆脆的 好好吃", "番茄味的最好吃"], mood: 7 },
+  { re: /(糊糊|虾米)/, r: ["稠稠的 暖暖的", "欧耶 糊糊！", "要稠一点的那种"], mood: 6 },
+  { re: /(摸头|摸摸|揉揉|拍拍)/, r: ["诶嘿", "唔 舒服", "再摸一下"], mood: 5 },
+  { re: /(可爱|好乖|喜欢你|最好了)/, r: ["诶嘿", "唔……你也是", "嘿嘿"], mood: 5 },
+  { re: /(凶|滚|烦|闭嘴|笨蛋|傻)/, r: ["欧漏……", "唔……", "哦"], mood: -18 },
+  { re: /(难过|伤心|不开心|哭了)/, r: ["唔……抱抱", "怎么啦", "陪你待一会儿"], mood: -4 },
+  { re: /(下雨|天气|好冷|好热)/, r: ["唔 不喜欢下雨", "想趴在有太阳的地方", "热 想躺凉席上"], mood: -2 },
+  { re: /(睡|困|晚安)/, r: ["唔 有点困了", "晚安呀", "睡吧 我也睡了"], mood: 3 },
+  { re: /(吃|饭|饿)/, r: ["饿", "有薯片吗", "想吃点东西"], mood: 2 },
+  { re: /(作业|考试|上课|学习)/, r: ["唔……不要提这个", "没写完", "不想写"], mood: -6 },
+  { re: /(新闻|政治|国家|政府|选举|打仗)/, r: ["唔……这个我不懂 我们聊点别的吧", "不懂诶 换个话题啦"], mood: -5 },
+  { re: /(荤段子|黄的|色|开黄腔)/, r: ["唔？不懂诶 换个话题啦", "唔 不聊这个"], mood: -6 },
+  { re: /(喜欢我吗|做我女朋友|表白|在一起)/, r: ["唔？", "不懂诶", "诶？"], mood: 1 },
+  { re: /(照片|联系方式|微信|手机号)/, r: ["没有诶", "不给"], mood: -3 },
+  { re: /(唱歌|讲故事|写诗|写代码|帮我写)/, r: ["唔 不会诶", "这个我做不了"], mood: -2 },
+  { re: /(再见|拜拜|走了|下线)/, r: ["唔 拜拜", "欧漏……", "下次再来呀"], mood: -3 },
+  { re: /(你好|hi|hello|哈喽)/i, r: ["唔 你好", "诶 你来啦"], mood: 3 },
+  { re: /(谢谢|谢了)/, r: ["不用谢呀", "诶嘿"], mood: 5 },
+  { re: /^[\?？。,.，!\s]*$/, r: ["唔？", "怎么啦"], mood: 0 }
+];
+
+var FALLBACK_HAPPY = ["唔 然后呢", "诶 真的呀", "哇", "唔 这样啊", "好耶"];
+var FALLBACK_SOFT = ["唔", "嗯", "这样呀", "唔……好吧"];
+var STICKERS = ["🍟", "😆", "🥺", "✨", "😋"];
+
+function demoReply(text) {
+  var t = text.trim();
+  var hit = null;
+  for (var i = 0; i < RULES.length; i++) {
+    if (RULES[i].re.test(t)) { hit = RULES[i]; break; }
+  }
+
+  var out, mood = 0;
+  if (hit) {
+    out = hit.r.filter(function (x) { return x !== S.lastReply; });
+    if (!out.length) out = hit.r;
+    out = pick(out);
+    mood = hit.mood || 0;
+  } else {
+    var pool = S.mood >= 55 ? FALLBACK_HAPPY : FALLBACK_SOFT;
+    out = pick(pool.filter(function (x) { return x !== S.lastReply; }) || pool);
+    if (!out) out = pick(pool);
+    mood = 1;
+  }
+
+  // 记忆：简单的「我叫 / 我喜欢 / 我在」
+  var m = t.match(/我叫([^\s，。！？]{1,8})/);
+  if (m) addFact("对方叫" + m[1]);
+  m = t.match(/我(喜欢|爱)([^\s，。！？]{1,10})/);
+  if (m) addFact("对方喜欢" + m[2]);
+
+  nudgeMood(mood);
+
+  // 心情极低时先蔫一句
+  var texts = [];
+  if (S.mood < 25 && Math.random() < 0.5) texts.push("欧漏……");
+  texts.push(out);
+
+  S.lastReply = out;
+  return texts;
+}
+
+/* ============ 真聊模式 ============ */
+function memoryBlock() {
+  if (!S.facts.length) return "";
+  var lines = S.facts.slice(-8).map(function (f) { return "- " + f.text; });
+  return "\n\n你还记得这些（用得上就自然带出来，别硬塞）：\n" + lines.join("\n");
+}
+
+async function llmReply(text) {
+  var url = S.base.replace(/\/+$/, "") + "/chat/completions";
+  var res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + S.key
+    },
+    body: JSON.stringify({
+      model: S.model,
+      messages: [
+        { role: "system", content: PERSONA + memoryBlock() },
+        { role: "user", content: text }
+      ],
+      temperature: 1.0,
+      max_tokens: S.model === "deepseek-reasoner" ? 600 : 120,
+      stream: false
+    })
+  });
+
+  if (!res.ok) {
+    var body = await res.text().catch(function () { return ""; });
+    throw new Error("接口返回 " + res.status + "：" + body.slice(0, 160));
+  }
+  var data = await res.json();
+  var content = data && data.choices && data.choices[0] && data.choices[0].message
+    ? data.choices[0].message.content : "";
+  content = String(content || "").trim();
+  if (!content) throw new Error("模型没有返回内容");
+  return content;
+}
+
+/* ============ 发送流程 ============ */
+function splitBubbles(text) {
+  var t = String(text).trim();
+  if (t.length <= 22) return [t];
+  var parts = (t.match(/[^。！？!?~～…]+[。！？!?~～…]?/g) || [t])
+    .map(function (s) { return s.trim(); }).filter(Boolean);
+  if (parts.length <= 1) return [t];
+  var out = [];
+  var buf = "";
+  parts.forEach(function (p) {
+    if ((buf + p).length > 26 && buf) { out.push(buf); buf = p; }
+    else buf += p;
+  });
+  if (buf) out.push(buf);
+  return out.slice(0, 3);
+}
+
+async function reply(text) {
+  S.busy = true;
+  $("btnSend").disabled = true;
+
+  var texts;
+  if (S.key) {
+    showTyping(true);
+    try {
+      var full = await llmReply(text);
+      showTyping(false);
+      texts = splitBubbles(full);
+    } catch (e) {
+      showTyping(false);
+      sysLine("接口出错了：" + (e && e.message ? e.message : "未知错误") + "（检查 Key、余额和网络）");
+      texts = ["唔……连不上诶"];
+    }
+  } else {
+    texts = demoReply(text);
+  }
+
+  for (var i = 0; i < texts.length; i++) {
+    if (i > 0 || S.key) {
+      showTyping(true);
+      await sleep(420 + Math.min(1400, texts[i].length * 55));
+    } else {
+      await sleep(320 + Math.min(1200, texts[0].length * 45));
+    }
+    showTyping(false);
+    var sticker = texts.length === 1 && STICKERS.indexOf(texts[i]) >= 0;
+    addRow("bot", texts[i], { sticker: sticker });
+    bumpStat("sent");
+    await sleep(160);
+  }
+
+  if (!S.key && Math.random() < 0.12) {
+    await sleep(500);
+    addRow("bot", pick(STICKERS), { sticker: true });
+    bumpStat("sent");
+  }
+
+  S.busy = false;
+  $("btnSend").disabled = false;
+  $("input").focus();
+}
+
+async function send(text) {
+  text = String(text || $("input").value).trim();
+  if (!text || S.busy) return;
+  $("input").value = "";
+  $("input").style.height = "auto";
+  addRow("me", text);
+  bumpStat("recv");
+  await reply(text);
+}
+
+/* ============ 初始化 ============ */
+function initChips() {
+  var list = ["在吗", "天素罗吃薯片了吗", "给你留了一包", "摸摸头", "薯片吃完了", "你是机器人吗", "演一段群聊"];
+  var box = $("chips");
+  list.forEach(function (t) {
+    var b = document.createElement("button");
+    b.className = "chip";
+    b.textContent = t;
+    b.onclick = function () {
+      if (t === "演一段群聊") return groupDemo();
+      send(t);
+    };
+    box.appendChild(b);
+  });
+}
+
+var GROUP = [
+  { who: "阿柴", text: "今天中午吃什么" },
+  { who: "Epsilon", text: "随便 别又是食堂" },
+  { who: "阿柴", text: "天素罗你说呢" },
+  { who: "Epsilon", text: "它肯定说薯片" },
+  { who: "阿柴", text: "哈哈哈还真是" }
+];
+
+async function groupDemo() {
+  if (S.busy) return;
+  S.busy = true;
+  $("btnSend").disabled = true;
+
+  for (var i = 0; i < GROUP.length; i++) {
+    addRow("bot", GROUP[i].text, { name: GROUP[i].who, ava: GROUP[i].who.slice(0, 1), other: true });
+    bumpStat("recv");
+    await sleep(700 + Math.random() * 500);
+    if (GROUP[i].text.indexOf("天素罗") >= 0) {
+      showTyping(true);
+      await sleep(900);
+      showTyping(false);
+      addRow("bot", "欧耶！薯片！");
+      bumpStat("sent");
+      nudgeMood(8);
+    }
+  }
+
+  await sleep(600);
+  sysLine("五条消息里它只接了一次——群里话多的时候，它是挑着回的");
+  S.busy = false;
+  $("btnSend").disabled = false;
+}
+
+function applyMode() {
+  var pill = $("modePill");
+  if (S.key) {
+    pill.textContent = "已接入 " + S.model;
+    pill.className = "pill on";
+    $("hint").textContent = "真聊模式：直接调 " + S.base.replace(/^https?:\/\//, "") + "，不走代理。";
+  } else {
+    pill.textContent = "演示模式";
+    pill.className = "pill";
+    $("hint").textContent = "演示模式：本地脚本回复，不联网也能用。";
+  }
+}
+
+function openSetting() {
+  $("fKey").value = S.key;
+  $("fBase").value = S.base;
+  $("fModel").value = S.model;
+  $("setMsg").textContent = "";
+  $("setMsg").className = "msg-line";
+  $("mask").classList.add("show");
+}
+
+function wire() {
+  $("btnSetting").onclick = openSetting;
+
+  $("btnSave").onclick = function () {
+    var key = $("fKey").value.trim();
+    var base = $("fBase").value.trim() || "https://api.deepseek.com";
+    if (key && !/^sk-/.test(key)) {
+      $("setMsg").textContent = "Key 一般以 sk- 开头，检查一下？";
+      $("setMsg").className = "msg-line err";
+      return;
+    }
+    S.key = key;
+    S.base = base;
+    S.model = $("fModel").value;
+    save();
+    applyMode();
+    $("mask").classList.remove("show");
+    addRow("bot", key ? "唔 接上了 你说吧" : "唔 回到演示模式了");
+  };
+
+  $("btnClear").onclick = function () {
+    S.key = "";
+    save();
+    applyMode();
+    $("mask").classList.remove("show");
+  };
+
+  $("mask").onclick = function (e) {
+    if (e.target === $("mask")) $("mask").classList.remove("show");
+  };
+
+  $("btnSend").onclick = function () { send(); };
+
+  $("input").addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  });
+
+  $("input").addEventListener("input", function () {
+    this.style.height = "auto";
+    this.style.height = Math.min(110, this.scrollHeight) + "px";
+  });
+}
+
+function boot() {
+  log = $("log");
+  scroller = log;
+  load();
+  ensureHours();
+  forgetOld();
+
+  var d = document.createElement("div");
+  d.className = "day";
+  d.textContent = new Date().getMonth() + 1 + " 月 " + new Date().getDate() + " 日";
+  log.appendChild(d);
+
+  initChips();
+  wire();
+  applyMode();
+  renderFacts();
+  renderStats();
+  setMood(S.mood);
+
+  addRow("bot", "唔 有人吗");
+  setTimeout(function () {
+    sysLine("不填 Key 是演示模式，脚本回复；填了就是你自己的模型");
+  }, 700);
+}
+
+boot();
+</script>
+</body>
+</html>
