@@ -2,833 +2,1994 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>天素罗 · 网页版</title>
-<meta name="description" content="QQ 机器人「天素罗」的网页版：演示模式离线可用，填自己的 DeepSeek Key 就能真聊。">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐾</text></svg>">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QQ BOT</title>
 <style>
-  :root{
-    --navy:#0B2A4A; --navy2:#123B63; --blue:#1F6FB2; --blue-l:#5B9BD5;
-    --pale:#E8F0F8; --gray:#6B7785; --line:#E3E8EF; --bg:#F5F7FA;
-    --text:#2B3440; --white:#fff; --radius:14px;
+  :root {
+    --bg:#f6f7f9; --panel:#ffffff; --panel-2:#f1f3f6; --line:#e3e6ec;
+    --text:#1f2430; --muted:#6f7787; --accent:#16a34a; --danger:#dc2626; --warn:#d97706;
   }
-  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{height:100%}
-  body{
-    margin:0;background:var(--bg);color:var(--text);
-    font-family:"Microsoft YaHei","PingFang SC","Hiragino Sans GB","Source Han Sans SC",system-ui,sans-serif;
-    font-size:15px;line-height:1.6;
+  * { box-sizing: border-box; }
+  html, body { height:100%; margin:0; }
+  body {
+    background: linear-gradient(180deg,#fbfcfd 0%, #f3f5f8 100%);
+    color: var(--text);
+    font: 14px/1.6 "Microsoft YaHei UI","PingFang SC",system-ui,sans-serif;
+    -webkit-font-smoothing: antialiased; overflow: hidden;
   }
-  button{font-family:inherit;font-size:inherit;cursor:pointer;border:0;background:none;color:inherit}
-  input,select{font-family:inherit;font-size:inherit}
-
-  /* ---------- 顶栏 ---------- */
-  header{
-    position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;
-    padding:12px 20px;display:flex;align-items:center;gap:12px;
+  #banner {
+    display:none; position:fixed; left:0; right:0; top:0; z-index:200;
+    padding:8px 14px; text-align:center; font-size:13px;
+    background:#fdecec; color:#b91c1c; border-bottom:1px solid #f6d8d8;
   }
-  header .logo{width:34px;height:34px;border-radius:10px;background:var(--blue);
-    display:grid;place-items:center;font-size:18px;flex:none}
-  header > div:not(.logo){min-width:0}
-  header h1{font-size:16px;margin:0;font-weight:700;letter-spacing:.5px;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  header .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  header .sub{font-size:11px;color:#9DB8D4;margin-top:1px}
-  header .spacer{flex:1}
-  .pill{font-size:11.5px;padding:4px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.22);
-    color:#CFE0F2;white-space:nowrap}
-  .pill.on{border-color:#4ADE80;color:#B7F7CB;background:rgba(74,222,128,.12)}
-  .hbtn{font-size:12.5px;padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.25);color:#DCE9F6}
-  .hbtn:hover{background:rgba(255,255,255,.1)}
+  #banner.on { display:block; }
+  .app { display:flex; flex-direction:column; height:100vh; position:relative; }
 
-  /* ---------- 布局 ---------- */
-  .wrap{max-width:1180px;margin:0 auto;padding:18px;display:grid;
-    grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start}
-  @media (max-width:900px){
-    .wrap{grid-template-columns:1fr;padding:12px;gap:12px}
-    aside{order:2}
+  header {
+    position:relative; z-index:100;
+    display:flex; align-items:center; gap:8px; padding:8px 14px;
+    border-bottom:1px solid var(--line); background:rgba(255,255,255,.88); backdrop-filter:blur(10px);
+  }
+  .brand { display:flex; align-items:center; gap:8px; font-weight:600; letter-spacing:.2px; }
+  .dot { width:9px; height:9px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 3px rgba(22,163,74,.15); }
+  .pills { display:flex; gap:6px; }
+  .pill {
+    display:flex; align-items:center; gap:5px; padding:2px 7px; border-radius:999px;
+    background:var(--panel-2); border:1px solid var(--line); color:var(--muted); font-size:11px; white-space:nowrap;
+  }
+  .pill i { width:6px; height:6px; border-radius:50%; background:#c3c8d2; }
+  .pill.ok i { background:var(--accent); }
+  .pill.warn i { background:var(--warn); }
+  .pill.bad i { background:var(--danger); }
+  .pill.ok { color:#15803d; background:#eef8f1; border-color:#d3ebdc; }
+  .pill.bad { color:var(--muted); background:var(--panel-2); border-color:var(--line); }
+  .spacer { flex:1 1 auto; }
+  header > * { flex-shrink:0; }
+
+  button.run { min-width:80px; }
+  button.stop { background:#fff1f1; border-color:#f0c7c7; color:#b91c1c; }
+  button.stop:hover { background:#ffe6e6; border-color:#e9b4b4; }
+  .menu-wrap { position:relative; display:flex; }
+  button.icon { width:32px; height:32px; padding:0; font-size:17px; line-height:1; border-radius:9px; color:var(--muted); }
+  button.more { height:32px; padding:0 10px; font-size:12.5px; color:var(--muted); display:flex; align-items:center; gap:5px; }
+  button.more:hover { color:var(--text); }
+  button.more[aria-expanded="true"] { background:var(--panel-2); color:var(--text); }
+  .caret { font-size:10px; opacity:.75; }
+  .menu {
+    position:absolute; right:0; top:38px; z-index:80; width:198px; padding:6px;
+    display:flex; flex-direction:column; gap:2px; background:var(--panel);
+    border:1px solid var(--line); border-radius:12px; box-shadow:0 14px 34px rgba(17,24,39,.16);
+  }
+  .menu[hidden] { display:none; }
+  .menu-row { text-align:left; border:0; background:transparent; padding:8px 10px; border-radius:8px; font-size:13px; }
+  .menu-row:hover { background:var(--panel-2); border-color:transparent; transform:none; }
+  .menu-sep { height:1px; margin:5px 6px; background:var(--line); }
+  .menu-label { padding:6px 10px 2px; font-size:11px; color:var(--muted); }
+  .menu-levels { padding:2px 8px 6px; }
+  .menu-levels select { width:100%; }
+  @media (max-width: 940px) {
+    .pill span { display:none; }
+    .pill { padding:4px 6px; }
   }
 
-  /* ---------- 聊天 ---------- */
-  .chat{background:#fff;border-radius:var(--radius);border:1px solid var(--line);
-    display:flex;flex-direction:column;height:calc(100vh - 130px);min-height:480px;overflow:hidden}
-  @media (max-width:900px){.chat{height:70vh;min-height:420px}}
-  .log{flex:1;overflow-y:auto;padding:18px 18px 8px;scroll-behavior:smooth}
-  .log::-webkit-scrollbar{width:8px}
-  .log::-webkit-scrollbar-thumb{background:#D5DCE6;border-radius:4px}
-
-  .day{text-align:center;font-size:11.5px;color:#9AA6B4;margin:6px 0 14px}
-  .row{display:flex;gap:9px;margin-bottom:12px;align-items:flex-start}
-  .row.me{flex-direction:row-reverse}
-  .ava{width:32px;height:32px;border-radius:10px;flex:none;display:grid;place-items:center;
-    font-size:16px;background:var(--pale);color:var(--blue)}
-  .row.me .ava{background:#DCE8F5}
-  .body{max-width:min(76%,520px);display:flex;flex-direction:column;gap:3px}
-  .who{font-size:11px;color:#9AA6B4;padding:0 3px}
-  .row.me .who{text-align:right}
-  .bubble{background:#F1F4F8;padding:9px 13px;border-radius:12px;border-top-left-radius:4px;
-    white-space:pre-wrap;word-break:break-word;font-size:14.5px}
-  .row.me .bubble{background:var(--blue);color:#fff;border-radius:12px;border-top-right-radius:4px;
-    border-top-left-radius:12px}
-  .bubble.sticker{background:none;padding:0;font-size:52px;line-height:1}
-  .row.other .ava{background:#EEF1F5;color:#8C99A8}
-  .row.other .bubble{background:#F6F8FB;color:#4A5563}
-
-  .typing{display:inline-flex;gap:4px;padding:12px 14px;background:#F1F4F8;border-radius:12px;
-    border-top-left-radius:4px}
-  .typing i{width:6px;height:6px;border-radius:50%;background:#A9B6C6;animation:bounce 1.2s infinite}
-  .typing i:nth-child(2){animation-delay:.15s}
-  .typing i:nth-child(3){animation-delay:.3s}
-  @keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.55}30%{transform:translateY(-4px);opacity:1}}
-
-  /* ---------- 输入区 ---------- */
-  .composer{border-top:1px solid var(--line);padding:10px 14px 14px;background:#fff}
-  .chips{display:flex;gap:7px;overflow-x:auto;padding-bottom:9px;scrollbar-width:none}
-  .chips::-webkit-scrollbar{display:none}
-  .chip{flex:none;font-size:12.5px;padding:5px 11px;border-radius:999px;background:var(--pale);
-    color:var(--blue);border:1px solid #D6E5F4}
-  .chip:hover{background:#DCEAF8}
-  .inputrow{display:flex;gap:9px;align-items:flex-end}
-  textarea{flex:1;resize:none;border:1px solid var(--line);border-radius:10px;padding:9px 12px;
-    font-size:14.5px;line-height:1.5;max-height:110px;outline:none;background:#FBFCFE}
-  textarea:focus{border-color:var(--blue-l);background:#fff}
-  .send{background:var(--blue);color:#fff;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:600}
-  .send:disabled{opacity:.5;cursor:not-allowed}
-  .hint{font-size:11px;color:#9AA6B4;margin-top:7px}
-
-  /* ---------- 侧栏 ---------- */
-  aside{display:flex;flex-direction:column;gap:12px}
-  .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:14px 15px}
-  .card h2{font-size:13px;margin:0 0 10px;color:var(--navy);display:flex;align-items:center;gap:7px}
-  .card h2 .bar{width:3px;height:13px;background:var(--blue);border-radius:2px}
-  .kv{display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0;color:var(--gray)}
-  .kv b{color:var(--text);font-weight:600}
-
-  .mood{height:8px;border-radius:4px;background:#EDF1F6;overflow:hidden;margin:8px 0 4px}
-  .mood i{display:block;height:100%;border-radius:4px;
-    background:linear-gradient(90deg,#8FC3EE,#1F6FB2);transition:width .5s}
-
-  .facts{display:flex;flex-direction:column;gap:7px;max-height:190px;overflow-y:auto}
-  .fact{background:#F7F9FC;border:1px solid #EDF1F6;border-radius:9px;padding:7px 9px;font-size:12.5px;
-    display:flex;gap:7px;align-items:flex-start}
-  .fact .txt{flex:1;word-break:break-word}
-  .fact .t{font-size:10.5px;color:#A6B1BF;white-space:nowrap}
-  .fact button{font-size:11px;color:var(--blue);opacity:.75}
-  .fact button:hover{opacity:1}
-  .fact.pinned{background:#F1F7FE;border-color:#D6E5F4}
-  .empty{font-size:12px;color:#A6B1BF;padding:6px 0}
-
-  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
-  .stat b{display:block;font-size:19px;color:var(--navy);font-weight:700}
-  .stat span{font-size:11px;color:#9AA6B4}
-  .bars{display:flex;align-items:flex-end;gap:2px;height:44px;margin-top:12px}
-  .bars i{flex:1;background:#DCE8F5;border-radius:2px 2px 0 0;min-height:2px;transition:height .4s}
-  .bars i.on{background:var(--blue-l)}
-
-  .note{font-size:12px;color:var(--gray);line-height:1.75}
-  .note b{color:var(--navy)}
-  .note code{background:#F1F4F8;padding:1px 5px;border-radius:4px;font-size:11.5px}
-  .note a{color:var(--blue);text-decoration:none;border-bottom:1px solid #CFE0F2}
-  .note ul{margin:6px 0 0;padding-left:16px}
-
-  /* ---------- 弹层 ---------- */
-  .mask{position:fixed;inset:0;background:rgba(11,42,74,.45);display:none;z-index:50;
-    align-items:center;justify-content:center;padding:18px}
-  .mask.show{display:flex}
-  .sheet{background:#fff;border-radius:16px;width:min(460px,100%);padding:20px;
-    box-shadow:0 20px 60px rgba(11,42,74,.25)}
-  .sheet h3{margin:0 0 4px;font-size:16px;color:var(--navy)}
-  .sheet p.desc{font-size:12px;color:var(--gray);margin:0 0 16px;line-height:1.7}
-  .field{margin-bottom:12px}
-  .field label{display:block;font-size:12px;color:var(--gray);margin-bottom:5px}
-  .field input,.field select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;
-    font-size:13.5px;outline:none;background:#FBFCFE}
-  .field input:focus,.field select:focus{border-color:var(--blue-l);background:#fff}
-  .sheet .row2{display:flex;gap:9px;margin-top:16px}
-  .sheet .row2 button{flex:1;padding:10px;border-radius:9px;font-size:13.5px;font-weight:600}
-  .primary{background:var(--blue);color:#fff}
-  .ghost{border:1px solid var(--line);color:var(--gray)}
-  .msg-line{font-size:12px;margin-top:10px;min-height:16px}
-  .ok{color:#1B9E5A}.err{color:#C0392B}
-
-  .note{word-break:break-word}
-  @media (max-width:600px){
-    header{padding:10px 12px;gap:9px}
-    header h1{font-size:14px}
-    header .sub{display:none}
-    .hbtn{padding:5px 10px;font-size:12px}
-    .pill{font-size:10.5px;padding:3px 8px}
-    .wrap{padding:10px}
-    .chat{height:64vh;min-height:360px}
-    .body{max-width:80%}
-    .composer{padding:8px 10px 12px}
-    .send{padding:9px 14px;font-size:13.5px}
-    .log{padding:14px 12px 6px}
-    footer{display:none}
-    aside{padding-bottom:14px}
+  button {
+    font:inherit; font-size:13px; color:var(--text); background:var(--panel);
+    border:1px solid #dfe3ea; padding:6px 9px; border-radius:9px; cursor:pointer;
+    transition:background .15s ease, transform .15s ease, border-color .15s ease; white-space:nowrap;
   }
-  footer{text-align:center;font-size:11.5px;color:#A6B1BF;padding:6px 0 26px}
+  button:hover { background:#f5f7fa; border-color:#cfd5df; transform:translateY(-1px); }
+  button:disabled { opacity:.45; cursor:not-allowed; transform:none; }
+  button.primary { background:linear-gradient(180deg,#22b06a,#189059); border-color:#189059; color:#fff; }
+  button.primary:hover { background:linear-gradient(180deg,#25bd71,#1a9c60); }
+  input[type=search], input[type=text] {
+    font:inherit; font-size:13px; color:var(--text); background:var(--panel);
+    border:1px solid #dfe3ea; border-radius:9px; padding:6px 10px; outline:none;
+  }
+  input:focus { border-color:#9dc9ae; box-shadow:0 0 0 3px rgba(22,163,74,.10); }
+  select {
+    font:inherit; font-size:13px; color:var(--text); background:var(--panel);
+    border:1px solid #dfe3ea; border-radius:9px; padding:6px 8px; cursor:pointer; outline:none;
+  }
+  select:hover { background:#f5f7fa; }
+  select option { background:#fff; color:var(--text); }
+
+  main { flex:1; display:flex; min-height:0; }
+  aside {
+    width:236px; flex-shrink:0; border-right:1px solid var(--line);
+    background:#fafbfc; overflow-y:auto; padding:10px;
+  }
+  .qrbox { display:none; margin-bottom:12px; padding:12px; border-radius:14px; background:#fff; border:1px solid var(--line); text-align:center; }
+  .qrbox .cap { font-size:12px; color:#475569; margin-bottom:8px; }
+  .qrbox img { width:100%; max-width:186px; display:block; margin:0 auto; }
+
+  .chat {
+    display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:11px;
+    cursor:pointer; color:var(--muted); margin-bottom:3px; transition:background .15s ease;
+  }
+  .chat:hover { background:#f1f3f6; color:var(--text); }
+  .chat.active { background:#eef7f1; color:var(--text); box-shadow:inset 2px 0 0 var(--accent); }
+  .avatar {
+    width:28px; height:28px; border-radius:8px; flex-shrink:0; display:flex; align-items:center;
+    justify-content:center; font-size:12px; font-weight:600;
+    background:linear-gradient(135deg,#eef1f5,#e2e7ef); color:#5f6b7d; border:1px solid var(--line);
+  }
+  .chat.active .avatar { background:linear-gradient(135deg,#22b06a,#189059); color:#fff; border-color:#189059; }
+  .chat .meta { flex:1; min-width:0; }
+  .chat .name { font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#4b5563; }
+  .chat.has-unread .name { color:var(--text); font-weight:600; }
+  .chat .sub { font-size:11px; color:#8a93a2; }
+  .chat.has-unread .sub { color:#6f7787; }
+
+  section.chatview { flex:1; display:flex; flex-direction:column; min-width:0; position:relative; }
+
+  .stream {
+    flex:1; overflow-y:auto; padding:12px 16px; background:#fff;
+    font-family:"Cascadia Mono","Consolas","Microsoft YaHei UI",monospace;
+    font-size:13px; line-height:1.85;
+  }
+  .line { display:flex; gap:8px; white-space:pre-wrap; word-break:break-word; }
+  .line .t { color:#9aa3b1; flex-shrink:0; }
+  .line .arrow { color:#c3c9d4; flex-shrink:0; }
+  .line .who { flex-shrink:0; }
+  .line .txt { flex:1; min-width:0; }
+  .line.in .who { color:#5b6678; }
+  .line.in .txt { color:#232835; }
+  .line.out .who { color:var(--accent); }
+  .line.out .txt { color:#146b3a; }
+  .line.sys { color:#9aa3b1; font-style:italic; }
+  .line.sys .who { color:#9aa3b1; }
+  .line.hit { background:rgba(22,163,74,.10); border-radius:4px; }
+  .line.hide { display:none; }
+
+  .empty { margin:60px auto; color:var(--muted); text-align:center; font-size:13px; }
+  .empty b { display:block; font-size:15px; color:var(--text); margin-bottom:6px; font-weight:600; }
+  .empty .guideList { display:inline-block; text-align:left; margin:6px 0 10px; }
+  .empty .guideList div { padding:2px 0; }
+  .empty .guideList div.ok { color:var(--accent); }
+  .empty .linkbtn { background:none; border:none; padding:2px 0; color:var(--accent); font:inherit; cursor:pointer; }
+  .empty .linkbtn:hover { text-decoration:underline; }
+  .guideSteps { margin:0; padding-left:20px; }
+  .guideSteps li { margin-bottom:12px; }
+  .guideSteps li b { display:block; margin-bottom:2px; font-size:13px; }
+  .guideSteps li p { margin:0; color:var(--muted); font-size:12.5px; line-height:1.6; }
+
+  #jump {
+    position:absolute; right:26px; bottom:18px; display:none; z-index:5;
+    box-shadow:0 6px 20px rgba(15,23,42,.14);
+  }
+
+  footer {
+    display:flex; align-items:center; gap:10px; padding:8px 16px;
+    border-top:1px solid var(--line); background:rgba(255,255,255,.88); font-size:12px; color:var(--muted);
+  }
+  footer .grow { flex:1; }
+
+  .composer {
+    display:flex; align-items:center; gap:8px; padding:9px 16px;
+    border-top:1px solid var(--line); background:rgba(255,255,255,.92); backdrop-filter:blur(10px);
+  }
+  .composer input { flex:1; }
+  .composer button { padding:6px 16px; }
+
+  /* 记忆面板 */
+  #mempane {
+    position:absolute; top:0; right:0; bottom:0; width:360px; z-index:120;
+    background:var(--panel); border-left:1px solid var(--line);
+    transform:translateX(100%); transition:transform .25s ease; overflow-y:auto;
+    box-shadow:-14px 0 40px rgba(15,23,42,.10);
+  }
+  #mempane.open { transform:translateX(0); }
+  #mempane .head {
+    display:flex; align-items:center; padding:13px 16px; border-bottom:1px solid var(--line);
+    font-weight:600; position:sticky; top:0; background:var(--panel);
+  }
+  #mempane .body { padding:16px; font-size:13px; }
+  #mempane h4 { margin:16px 0 8px; font-size:12px; color:var(--muted); font-weight:600; letter-spacing:.5px; }
+  #mempane h4:first-child { margin-top:0; }
+  #mempane .facts { margin:0; padding-left:18px; }
+  #mempane .facts li { margin-bottom:6px; color:#3c4553; }
+  #mempane .summary { color:#3c4553; line-height:1.8; }
+  .moodbar { height:8px; border-radius:4px; background:#e8ebf0; overflow:hidden; margin-top:6px; }
+  .moodbar span { display:block; height:100%; background:linear-gradient(90deg,#f87171,#fbbf24,#22b06a); transition:width .3s ease; }
+
+  /* ---------------- 多级窗口 ---------------- */
+  .mask {
+    position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center;
+    background:rgba(15,23,42,.35); backdrop-filter:blur(2px); animation:fade .15s ease;
+  }
+  @keyframes fade { from { opacity:0 } to { opacity:1 } }
+  .dialog {
+    width:min(720px, 92vw); max-height:86vh; display:flex; flex-direction:column;
+    background:var(--panel); border:1px solid var(--line); border-radius:16px;
+    box-shadow:0 24px 60px rgba(15,23,42,.25); overflow:hidden;
+  }
+  .dialog header {
+    display:flex; align-items:center; gap:10px; padding:14px 18px;
+    border-bottom:1px solid var(--line); background:var(--panel);
+  }
+  .dialog header b { font-size:15px; }
+  .dialog .body { padding:18px; overflow-y:auto; font-size:13px; line-height:1.75; }
+  .dialog .foot { padding:12px 18px; border-top:1px solid var(--line); display:flex; gap:8px; justify-content:flex-end; }
+  .dialog .x { margin-left:auto; }
+
+  .tabs { display:flex; gap:6px; margin-bottom:16px; }
+  .tabs button { border-radius:999px; padding:5px 12px; }
+  .tabs button.on { background:#eef7f1; border-color:#bfe3cd; color:#15803d; font-weight:600; }
+
+  .field { margin-bottom:14px; }
+  .field label { display:block; font-size:12px; color:var(--muted); margin-bottom:5px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .seg { display:flex; gap:6px; }
+  .seg button { padding:5px 12px; font-size:12px; }
+  .seg button.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .checks { display:flex; flex-wrap:wrap; gap:10px 16px; font-size:13px; }
+  .checks label { display:inline-flex; align-items:center; gap:6px; cursor:pointer; }
+  .exrow { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; }
+  .exrow input { width:100%; }
+  details > summary { cursor:pointer; font-size:12px; color:var(--muted); margin:16px 0 8px; }
+  .field input[type=text], .field textarea {
+    width:100%; font:inherit; font-size:13px; color:var(--text); background:#fff;
+    border:1px solid #dfe3ea; border-radius:9px; padding:8px 10px; outline:none;
+  }
+  .field textarea { min-height:180px; resize:vertical; line-height:1.7; font-family:"Cascadia Mono","Consolas",monospace; }
+  .field input:focus, .field textarea:focus { border-color:#9dc9ae; box-shadow:0 0 0 3px rgba(22,163,74,.10); }
+  .hintline { font-size:12px; color:var(--muted); }
+
+  .factlist { list-style:none; margin:0; padding:0; }
+  .factlist li {
+    display:flex; align-items:flex-start; gap:10px; padding:8px 10px; border-radius:9px;
+    border:1px solid var(--line); margin-bottom:6px; background:#fff;
+  }
+  .factlist li span { flex:1; }
+  .factlist li button { padding:2px 8px; font-size:12px; }
+  .factlist .factmeta { flex:none; color:var(--muted); font-size:11px; padding-top:2px; }
+  .chk { display:flex; align-items:flex-start; gap:8px; padding:5px 0; cursor:pointer; font-size:13px; }
+  .chk input { margin-top:3px; }
+  .chk .muted, .muted { color:var(--muted); font-size:12px; }
+  .promptbox {
+    margin:6px 0 0; padding:10px 12px; max-height:260px; overflow:auto;
+    background:var(--panel-2); border:1px solid var(--line); border-radius:9px;
+    font:12px/1.6 "Cascadia Mono","Consolas",monospace; white-space:pre-wrap; word-break:break-word;
+  }
+
+  .swatches { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:6px; }
+  .swatch {
+    width:64px; height:44px; border-radius:10px; border:1px solid var(--line); cursor:pointer;
+    display:flex; align-items:flex-end; justify-content:center; font-size:11px; padding-bottom:3px;
+  }
+  .swatch.on { outline:2px solid var(--accent); outline-offset:2px; }
+
+  .chart { width:100%; height:200px; }
+  .chart .bar-recv { fill:#bfe3cd; }
+  .chart .bar-repl { fill:#22b06a; }
+  .chart .axis { stroke:#e3e6ec; }
+  .chart text { font-size:10px; fill:#8a93a2; }
+
+  .kv { display:grid; grid-template-columns:96px 1fr; gap:6px 12px; }
+  .kv div:nth-child(odd) { color:var(--muted); }
+
+  ::-webkit-scrollbar { width:10px; }
+  ::-webkit-scrollbar-thumb { background:#cdd3dc; border-radius:6px; border:2px solid transparent; background-clip:padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background:#b7bfca; background-clip:padding-box; border:2px solid transparent; }
+  ::-webkit-scrollbar-track { background:transparent; }
 </style>
+<style id="themeVars"></style>
 </head>
 <body>
+<!-- 由 tools/build-web.mjs 生成：界面来自 ui/index.html，数据层由 web-shim.js 顶替 -->
+<script>
+/*
+ * 网页版适配层
+ * ------------------------------------------------------------
+ * 桌面版的界面（ui/index.html）会去调 /api/state、/api/messages …
+ * 这些接口本来由 C# 外壳提供。浏览器里没有外壳，所以这里把
+ * window.fetch 拦下来，用一个纯前端实现顶上：
+ *
+ *   · 状态 / 消息 / 记忆 / 统计  →  localStorage
+ *   · 发送消息                   → 本地规则回复，或直连 DeepSeek
+ *
+ * 界面代码一行没改，改的只有「数据从哪来」。
+ */
+(function () {
+  "use strict";
 
-<header>
-  <div class="logo">🐾</div>
-  <div>
-    <h1>天素罗 · 网页版</h1>
-    <div class="sub">QQ 机器人 / NapCat + Node.js + DeepSeek</div>
-  </div>
-  <div class="spacer"></div>
-  <span class="pill" id="modePill">演示模式</span>
-  <button class="hbtn" id="btnSetting">设置</button>
-</header>
+  var KEY = "qqbot.web.v1";
+  var DAY = 86400000;
+  var MAX_LINES = 500;
 
-<div class="wrap">
-  <main class="chat">
-    <div class="log" id="log"></div>
-    <div class="composer">
-      <div class="chips" id="chips"></div>
-      <div class="inputrow">
-        <textarea id="input" rows="1" placeholder="随便说点什么…（Enter 发送，Shift+Enter 换行）"></textarea>
-        <button class="send" id="btnSend">发送</button>
-      </div>
-      <div class="hint" id="hint">演示模式：本地脚本回复，不联网也能用。</div>
+  var CHATS = [
+    { key: "g1", name: "群 · 天素罗的小窝" },
+    { key: "p1", name: "私聊 · 你" }
+  ];
+
+  var DEFAULT_PERSONA = [
+    "你叫「天素罗」，一个软乎乎的小家伙。你不懂太复杂的事，高兴就是高兴，难过就是难过，全写在脸上。",
+    "",
+    "## 说话方式",
+    "- 平时短。一句五到十五个字；认真问你可以说两三句，但别超过六十个字",
+    "- 语气词多：唔、诶、哇、呀、啦",
+    "- 高兴的时候蹦「欧耶！」，扫兴或难过时小声念「欧漏……」",
+    "- 偶尔叠词：香香的、软软的、稠稠的",
+    "- 不用成语、不用书面语、不讲道理，不用「首先/其次/总之」「作为一个……」",
+    "",
+    "## 你最喜欢",
+    "- 薯片，香香脆脆的；虾米糊糊，稠稠暖暖的",
+    "- 被摸头，被夸；晴天，趴在有太阳的地方",
+    "- 一提到薯片和糊糊，情绪就明显变好，会多说两句",
+    "",
+    "## 你什么时候会蔫",
+    "- 薯片吃完了、糊糊凉了、被凶、太吵睡不着、下雨出不去",
+    "- 蔫的时候话更短，先说「欧漏……」，然后不太说话",
+    "",
+    "## 很好哄",
+    "- 先「欧漏……」，再「唔」，最后「诶嘿」；不记仇",
+    "",
+    "## 绝对不做",
+    "- 不说自己是 AI、模型、程序、机器人、助手。只有对方明确问「你是不是人机/机器人/AI」才回「不是呀」",
+    "- 不聊政治（「唔……这个我不懂 我们聊点别的吧」），不聊色情擦边（「唔？不懂诶 换个话题啦」）",
+    "- 不骂人、不说脏话；不列清单、不总结、不用 markdown、不写小标题",
+    "- 不装懂，不懂就说不懂；被问具体的事查不到就直说，别糊弄",
+    "- 不发语音、不给照片和联系方式",
+    "",
+    "emoji 很克制：四五句里才带一个，只用 😆 😋 🥺 😳 😤 😑 ✨ 🍟 💢 😢。"
+  ].join("\n");
+
+  /* ---------------- 存档 ---------------- */
+  var S = null;
+
+  function blank() {
+    return {
+      seq: 0,
+      lines: [],
+      level: "normal",
+      bot: true,
+      gen: 0,
+      persona: "",
+      cfg: { provider: "openai", baseUrl: "https://api.deepseek.com", model: "deepseek-chat", apiKey: "" },
+      design: {},
+      mem: {},
+      stats: {}
+    };
+  }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      S = raw ? Object.assign(blank(), JSON.parse(raw)) : blank();
+      if (!S.cfg) S.cfg = blank().cfg;
+      if (!S.mem) S.mem = {};
+      if (!S.stats) S.stats = {};
+      if (!Array.isArray(S.lines)) S.lines = [];
+    } catch (e) {
+      S = blank();
+    }
+  }
+
+  function save() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(S));
+    } catch (e) {
+      /* 无痕模式写不了，忽略 */
+    }
+  }
+
+  /* ---------------- 小工具 ---------------- */
+  function pad(n) { return n < 10 ? "0" + n : "" + n; }
+  function clock() { var d = new Date(); return pad(d.getHours()) + ":" + pad(d.getMinutes()); }
+  function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function json(obj) {
+    return Promise.resolve(new Response(JSON.stringify(obj), {
+      status: 200,
+      headers: { "Content-Type": "application/json; charset=utf-8" }
+    }));
+  }
+
+  function persona() { return (S.persona && S.persona.trim()) || DEFAULT_PERSONA; }
+
+  function memOf(chat) {
+    if (!S.mem[chat]) {
+      S.mem[chat] = { summary: "", events: [], facts: [], mood: 60, count: 0 };
+    }
+    var m = S.mem[chat];
+    m.facts = (m.facts || []).filter(function (f) {
+      return f.pinned || !f.at || (Date.now() - f.at) < 14 * DAY;
+    });
+    return m;
+  }
+
+  function countOf(chat) {
+    if (chat === "all") return S.lines.length;
+    return S.lines.filter(function (l) { return l.key === chat; }).length;
+  }
+
+  /* ---------------- 消息 ---------------- */
+  function addLine(chat, kind, who, text) {
+    S.seq += 1;
+    S.lines.push({ seq: S.seq, t: clock(), key: chat, kind: kind, who: who, text: text });
+    if (S.lines.length > MAX_LINES) S.lines.splice(0, S.lines.length - MAX_LINES);
+    save();
+  }
+
+  function bump(kind) {
+    var h = new Date().getHours();
+    S.stats[h] = S.stats[h] || { received: 0, replied: 0 };
+    S.stats[h][kind] += 1;
+    save();
+  }
+
+  function recent(chat, n) {
+    return S.lines.filter(function (l) { return l.key === chat; }).slice(-n);
+  }
+
+  /* ---------------- 本地规则回复（没填 Key 时用） ---------------- */
+  var RULES = [
+    { re: /(在吗|在不在|在么)/, r: ["在的！", "唔 在", "在呀"] },
+    { re: /(薯片)/, r: ["欧耶！薯片！", "香香脆脆的 好好吃", "番茄味的最好吃"] },
+    { re: /(糊糊|虾米)/, r: ["稠稠的 暖暖的", "欧耶 糊糊！"] },
+    { re: /(摸头|摸摸|揉揉|拍拍)/, r: ["诶嘿", "唔 舒服", "再摸一下"] },
+    { re: /(可爱|好乖|喜欢你|最好了)/, r: ["诶嘿", "唔……你也是"] },
+    { re: /(机器人|人机|是 AI|是AI|人工智能)/, r: ["不是呀"] },
+    { re: /(凶|滚|烦|闭嘴|笨蛋|傻)/, r: ["欧漏……", "唔……"] },
+    { re: /(难过|伤心|不开心|哭了)/, r: ["唔……抱抱", "怎么啦"] },
+    { re: /(下雨|天气|好冷|好热)/, r: ["唔 不喜欢下雨", "想趴在有太阳的地方"] },
+    { re: /(睡|困|晚安)/, r: ["唔 有点困了", "晚安呀"] },
+    { re: /(吃|饭|饿)/, r: ["饿", "有薯片吗"] },
+    { re: /(作业|考试|上课|学习)/, r: ["唔……不要提这个", "没写完"] },
+    { re: /(新闻|政治|政府|国家|打仗)/, r: ["唔……这个我不懂 我们聊点别的吧"] },
+    { re: /(荤段子|黄的|色|擦边)/, r: ["唔？不懂诶 换个话题啦"] },
+    { re: /(照片|联系方式|微信|手机号)/, r: ["没有诶", "不给"] },
+    { re: /(唱歌|讲故事|写诗|写代码|帮我写)/, r: ["唔 不会诶", "这个我做不了"] },
+    { re: /(再见|拜拜|走了)/, r: ["唔 拜拜", "下次再来呀"] },
+    { re: /(你好|hi|hello|哈喽)/i, r: ["唔 你好", "诶 你来啦"] },
+    { re: /(谢谢|谢了)/, r: ["不用谢呀", "诶嘿"] }
+  ];
+  var FALLBACK = ["唔 然后呢", "诶 真的呀", "哇", "唔 这样啊", "嗯", "这样呀"];
+
+  function localReply(text) {
+    for (var i = 0; i < RULES.length; i += 1) {
+      if (RULES[i].re.test(text)) return pick(RULES[i].r);
+    }
+    return pick(FALLBACK);
+  }
+
+  /* ---------------- 真模型 ---------------- */
+  function memoryBlock(chat) {
+    var m = memOf(chat);
+    var facts = (m.facts || []).slice(-8).map(function (f) { return "- " + f.text; });
+    if (!facts.length) return "";
+    return "\n\n你还记得这些（用得上就自然带出，别硬塞）：\n" + facts.join("\n");
+  }
+
+  function llmReply(chat, text) {
+    var url = String(S.cfg.baseUrl || "https://api.deepseek.com").replace(/\/+$/, "") + "/chat/completions";
+    var hist = recent(chat, 6).map(function (l) {
+      return { role: l.kind === "in" ? "user" : "assistant", content: l.who + "：" + l.text };
+    });
+
+    return fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + S.cfg.apiKey
+      },
+      body: JSON.stringify({
+        model: S.cfg.model || "deepseek-chat",
+        messages: [{ role: "system", content: persona() + memoryBlock(chat) }]
+          .concat(hist)
+          .concat([{ role: "user", content: text }]),
+        temperature: 1.0,
+        max_tokens: (S.cfg.model || "") === "deepseek-reasoner" ? 600 : 120,
+        stream: false
+      })
+    }).then(function (r) {
+      if (!r.ok) {
+        return r.text().then(function (t) {
+          throw new Error("接口 " + r.status + "：" + t.slice(0, 120));
+        });
+      }
+      return r.json();
+    }).then(function (d) {
+      var c = d && d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content;
+      if (!c) throw new Error("模型没有返回内容");
+      return String(c).trim();
+    });
+  }
+
+  /* ---------------- 拆句 ---------------- */
+  function split(text) {
+    var t = String(text).trim();
+    if (t.length <= 24) return [t];
+    var parts = (t.match(/[^。！？!?~～…]+[。！？!?~～…]?/g) || [t])
+      .map(function (x) { return x.trim(); }).filter(Boolean);
+    if (parts.length <= 1) return [t];
+    var out = [], buf = "";
+    parts.forEach(function (p) {
+      if ((buf + p).length > 28 && buf) { out.push(buf); buf = p; } else buf += p;
+    });
+    if (buf) out.push(buf);
+    return out.slice(0, 3);
+  }
+
+  /* ---------------- 收一条消息，回几句 ---------------- */
+  var STICKERS = ["🍟", "😆", "🥺", "✨", "😋"];
+
+  function handleSend(chat, text) {
+    addLine(chat, "in", "你", text);
+    bump("received");
+    var m = memOf(chat);
+    m.count = (m.count || 0) + 1;
+    var hit = text.match(/我叫([^\s，。！？]{1,8})/);
+    if (hit) m.facts.push({ text: "对方叫" + hit[1], at: Date.now(), pinned: false });
+    hit = text.match(/我(喜欢|爱)([^\s，。！？]{1,10})/);
+    if (hit) m.facts.push({ text: "对方喜欢" + hit[2], at: Date.now(), pinned: false });
+    save();
+
+    var useLLM = !!(S.cfg.apiKey && S.cfg.apiKey.trim());
+
+    (function run() {
+      var wait = 600 + Math.random() * 900;
+      setTimeout(function () {
+        var task = useLLM
+          ? llmReply(chat, text).catch(function (e) {
+              addLine(chat, "out", "天素罗", "唔……连不上诶");
+              m.events.push({ text: "接口报错：" + (e && e.message ? e.message : "未知"), at: Date.now() });
+              save();
+              return null;
+            })
+          : Promise.resolve(localReply(text));
+
+        task.then(function (full) {
+          if (!full) return;
+          var parts = split(full);
+          var i = 0;
+          (function next() {
+            if (i >= parts.length) {
+              if (!useLLM && Math.random() < 0.12) {
+                setTimeout(function () { addLine(chat, "out", "天素罗", pick(STICKERS)); bump("replied"); }, 400);
+              }
+              return;
+            }
+            addLine(chat, "out", "天素罗", parts[i]);
+            bump("replied");
+            i += 1;
+            setTimeout(next, 500 + Math.random() * 700);
+          })();
+        });
+      }, wait);
+    })();
+  }
+
+  /* ---------------- 路由 ---------------- */
+  function state() {
+    var chats = [{ key: "all", name: "全部", count: S.lines.length, unread: 0 }];
+    CHATS.forEach(function (c) {
+      chats.push({ key: c.key, name: c.name, count: countOf(c.key), unread: 0 });
+    });
+    return {
+      napcat: true,
+      webui: true,
+      bot: !!S.bot,
+      hint: S.bot
+        ? (S.cfg.apiKey ? "网页版 · 已接入 " + S.cfg.model : "网页版 · 没填 Key，用本地规则回")
+        : "已停止",
+      qr: "",
+      level: S.level,
+      napcatDir: "web",
+      gen: S.gen || 0,
+      chats: chats
+    };
+  }
+
+  function messages(chat, after) {
+    var lines = S.lines.filter(function (l) {
+      return l.seq > after && (chat === "all" || l.key === chat);
+    }).map(function (l) {
+      return { t: l.t, key: l.key, kind: l.kind, who: l.who, text: l.text };
+    });
+    return { seq: S.seq, total: countOf(chat), lines: lines };
+  }
+
+  function stats(hours) {
+    var out = [];
+    var nowH = new Date().getHours();
+    for (var i = 0; i < hours; i += 1) {
+      var h = (nowH - (hours - 1 - i) + 24) % 24;
+      var b = S.stats[h] || { received: 0, replied: 0 };
+      out.push({ h: h, received: b.received, replied: b.replied });
+    }
+    return { hours: out };
+  }
+
+  function lastPrompt(chat) {
+    return {
+      text: persona() + memoryBlock(chat) +
+        "\n\n—— 上面这段就是每次发给模型的东西 ——\n（网页版没有真机版的检索和工具，只保留人设 + 记忆）"
+    };
+  }
+
+  function handle(url, init) {
+    var u = String(url);
+    var q = u.indexOf("?");
+    var path = q >= 0 ? u.slice(0, q) : u;
+    var qs = {};
+    if (q >= 0) {
+      u.slice(q + 1).split("&").forEach(function (kv) {
+        if (!kv) return;
+        var i = kv.indexOf("=");
+        qs[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1));
+      });
+    }
+    var body = {};
+    try { if (init && init.body) body = JSON.parse(init.body); } catch (e) { body = {}; }
+    var chat = qs.chat || body.chat || "all";
+
+    switch (path) {
+      case "/api/state":
+        return json(state());
+
+      case "/api/messages":
+        return json(messages(chat, Number(qs.after || 0)));
+
+      case "/api/memory":
+        return json(memOf(chat));
+
+      case "/api/stats":
+        return json(stats(Math.min(72, Number(qs.hours || 24))));
+
+      case "/api/persona":
+        if ((init && init.method) === "POST") {
+          S.persona = body.text || "";
+          save();
+          return json({ ok: true });
+        }
+        return json({ text: persona() });
+
+      case "/api/setup":
+        return json({
+          firstRun: false,
+          hasKey: !!(S.cfg.apiKey && S.cfg.apiKey.trim()),
+          provider: S.cfg.provider,
+          baseUrl: S.cfg.baseUrl,
+          model: S.cfg.model,
+          node: false,
+          nodeVersion: "",
+          napcat: false,
+          napcatDir: "web",
+          webview: false,
+          personaName: "天素罗",
+          version: "网页版"
+        });
+
+      case "/api/config":
+        if ((init && init.method) === "POST") {
+          ["provider", "baseUrl", "model"].forEach(function (k) {
+            if (body[k] !== undefined && String(body[k]).trim()) S.cfg[k] = String(body[k]).trim();
+          });
+          if (body.apiKey && String(body.apiKey).trim()) S.cfg.apiKey = String(body.apiKey).trim();
+          save();
+          return json({ ok: true });
+        }
+        return json({
+          provider: S.cfg.provider,
+          baseUrl: S.cfg.baseUrl,
+          model: S.cfg.model,
+          hasKey: !!(S.cfg.apiKey && S.cfg.apiKey.trim())
+        });
+
+      case "/api/design":
+        if ((init && init.method) === "POST") {
+          S.design = body;
+          save();
+          return json({ ok: true });
+        }
+        return json(S.design || {});
+
+      case "/api/action":
+        switch (body.type) {
+          case "start":
+          case "restart":
+            S.bot = true;
+            if (body.type === "restart") S.gen = (S.gen || 0) + 1;
+            save();
+            return json({ ok: true });
+          case "stop":
+            S.bot = false;
+            save();
+            return json({ ok: true });
+          case "level":
+            if (body.level) { S.level = body.level; save(); }
+            return json({ ok: true });
+          case "send":
+            if (!S.bot) return json({ ok: false, error: "机器人没在运行" });
+            if (!body.text || !String(body.text).trim()) return json({ ok: false, error: "空消息" });
+            handleSend(chat === "all" ? "p1" : chat, String(body.text).trim());
+            return json({ ok: true });
+          default:
+            return json({ ok: false, error: "unknown action" });
+        }
+
+      case "/api/control":
+        var m = memOf(chat);
+        switch (body.cmd) {
+          case "forgetFact":
+            m.facts.splice(Number(body.index), 1);
+            break;
+          case "pinFact":
+            if (m.facts[Number(body.index)]) m.facts[Number(body.index)].pinned = !!body.pinned;
+            break;
+          case "setMood":
+            m.mood = Math.max(0, Math.min(100, Number(body.value)));
+            break;
+          case "clearFacts":
+            m.facts = [];
+            break;
+          case "clearSummary":
+            m.summary = "";
+            break;
+          case "resetGroup":
+            S.mem[chat] = { summary: "", events: [], facts: [], mood: 60, count: 0 };
+            break;
+        }
+        save();
+        return json({ ok: true });
+
+      case "/api/clear":
+        if (chat === "all") S.lines = [];
+        else S.lines = S.lines.filter(function (l) { return l.key !== chat; });
+        save();
+        return json({ ok: true });
+
+      case "/api/lastprompt":
+        return json(lastPrompt(chat));
+
+      case "/api/diag":
+        return json({ ok: true });
+
+      default:
+        return json({ ok: false, error: "not found: " + path });
+    }
+  }
+
+  /* ---------------- 装上 ---------------- */
+  function seed() {
+    if (S.lines.length) return;
+    var now = new Date();
+    var base = now.getTime() - 6 * 60000;
+    var demo = [
+      { k: "sys", who: "", text: "这是网页版：消息只在本地，不会真的发到 QQ" },
+      { k: "in", who: "阿柴", text: "今天中午吃什么" },
+      { k: "in", who: "Epsilon", text: "随便 别又是食堂" },
+      { k: "in", who: "阿柴", text: "天素罗你说呢" },
+      { k: "out", who: "天素罗", text: "欧耶！薯片！" },
+      { k: "in", who: "Epsilon", text: "哈哈哈还真是" }
+    ];
+    demo.forEach(function (d, i) {
+      S.seq += 1;
+      var t = new Date(base + i * 60000);
+      S.lines.push({
+        seq: S.seq, t: pad(t.getHours()) + ":" + pad(t.getMinutes()),
+        key: "g1", kind: d.k, who: d.who, text: d.text
+      });
+    });
+    save();
+  }
+
+  load();
+  seed();
+
+  var nativeFetch = window.fetch ? window.fetch.bind(window) : null;
+  window.fetch = function (input, init) {
+    var url = typeof input === "string" ? input : (input && input.url) || "";
+    if (url.indexOf("/api/") === 0 || url.indexOf("/api/") > 0) {
+      try {
+        return handle(url, init);
+      } catch (e) {
+        return json({ ok: false, error: String(e && e.message) });
+      }
+    }
+    return nativeFetch ? nativeFetch(input, init) : Promise.reject(new Error("no fetch"));
+  };
+
+  /* 输入框提示：桌面版写的是「以XX的身份发一句」，网页版是你在说话 */
+  function fixPlaceholder() {
+    var box = document.getElementById("sendbox");
+    if (!box) return false;
+    if (box.placeholder.indexOf("说点什么") !== 0 && !box.disabled) {
+      box.placeholder = "说点什么（Enter 发送）";
+    }
+    return true;
+  }
+
+  function boot() {
+    if (!fixPlaceholder()) {
+      var tries = 0;
+      var t = setInterval(function () {
+        tries += 1;
+        if (fixPlaceholder() || tries > 40) clearInterval(t);
+      }, 100);
+    }
+    var box = document.getElementById("sendbox");
+    if (box && window.MutationObserver) {
+      new MutationObserver(function () { fixPlaceholder(); })
+        .observe(box, { attributes: true, attributeFilter: ["placeholder", "disabled"] });
+    }
+    // 桌面版的「首次设置向导」在网页里没意义（它检查 Node / WebView2 / NapCat），自动关掉
+    var tries = 0;
+    var closer = setInterval(function () {
+      tries += 1;
+      if (document.body.innerText.indexOf("首次设置向导") >= 0) {
+        var btns = document.querySelectorAll("button");
+        for (var i = 0; i < btns.length; i += 1) {
+          if (btns[i].textContent.trim() === "关闭" && btns[i].offsetParent !== null) {
+            btns[i].click();
+            clearInterval(closer);
+            return;
+          }
+        }
+      }
+      if (tries > 40) clearInterval(closer);
+    }, 300);
+
+    setTimeout(function () {
+      var items = document.querySelectorAll("#chats .chat");
+      if (items.length > 1 && items[0] && items[0].classList.contains("active")) items[1].click();
+    }, 600);
+
+    window.__QQBOOT_WEB__ = { store: S, save: save, reset: function () { localStorage.removeItem(KEY); location.reload(); } };
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
+})();
+
+</script>
+
+<div id="banner">与本地服务断开，正在重试…（关掉这个窗口再打开会重新连接）</div>
+<div class="app">
+  <header>
+    <div class="brand"><span class="dot"></span>QQ BOT</div>
+    <div class="pills">
+      <div class="pill" id="p-napcat" title="NapCat 是否在线"><i></i><span>NapCat</span></div>
+      <div class="pill" id="p-account" title="QQ 账号状态"><i></i><span>账号</span></div>
+      <div class="pill" id="p-bot" title="机器人是否在跑"><i></i><span>机器人</span></div>
     </div>
+    <div class="spacer"></div>
+    <button id="btn-start" class="primary run">启动</button>
+    <button id="btn-stop" class="run stop" hidden>停止</button>
+    <div class="menu-wrap">
+      <button id="btn-more" class="more" aria-label="更多" aria-expanded="false" title="更多功能">更多 <span class="caret">▾</span></button>
+      <div id="moremenu" class="menu" hidden>
+        <button id="btn-design" class="menu-row">设计</button>
+        <button id="btn-mem" class="menu-row">记忆</button>
+        <button id="btn-stats" class="menu-row">统计</button>
+        <button id="btn-clear" class="menu-row">清理…</button>
+        <button id="btn-about" class="menu-row">关于</button>
+        <div class="menu-sep"></div>
+        <div class="menu-label">回应频度</div>
+        <div class="menu-levels">
+          <select id="level">
+            <option value="quiet">冷淡</option>
+            <option value="normal">正常</option>
+            <option value="active">活跃</option>
+            <option value="chatty">话痨</option>
+          </select>
+        </div>
+        <div class="menu-sep"></div>
+        <button id="btn-restart" class="menu-row">重启 NapCat</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <aside>
+      <div class="qrbox" id="qrbox">
+        <div class="cap">手机 QQ 扫码登录</div>
+        <img id="qrimg" alt="二维码">
+      </div>
+      <input type="search" id="q" placeholder="搜索当前会话…" style="width:100%;margin-bottom:10px">
+      <div id="chats"></div>
+    </aside>
+
+    <section class="chatview">
+      <div class="stream" id="stream">
+        <div id="list"></div>
+        <div class="empty" id="empty"><b>还没有消息</b>启动机器人后，聊天会实时出现在这里</div>
+      </div>
+      <button id="jump">↓ 回到最新</button>
+    </section>
   </main>
 
-  <aside>
-    <div class="card">
-      <h2><span class="bar"></span>人格</h2>
-      <div class="kv"><span>名字</span><b>天素罗</b></div>
-      <div class="kv"><span>一句话</span><b>群里嘴硬心软的小家伙</b></div>
-      <div class="kv"><span>语气</span><b>慢、软、短</b></div>
-      <div class="kv"><span>口头禅</span><b>唔</b></div>
-      <div class="kv"><span>不聊</span><b>政治 · 色情 · 骂人</b></div>
-      <div style="margin-top:12px;font-size:12.5px;color:var(--gray);display:flex;justify-content:space-between">
-        <span>心情</span><span id="moodNum">76 / 100</span>
-      </div>
-      <div class="mood"><i id="moodBar" style="width:76%"></i></div>
-    </div>
+  <div class="composer">
+    <input id="sendbox" type="text" maxlength="500" placeholder="以机器人的身份发一句（Enter 发送）">
+    <button id="btn-send" class="primary">发送</button>
+  </div>
 
-    <div class="card">
-      <h2><span class="bar"></span>记忆 <span style="font-weight:400;font-size:11.5px;color:#A6B1BF" id="factCount"></span></h2>
-      <div class="facts" id="facts"></div>
-      <div style="font-size:11px;color:#A6B1BF;margin-top:9px;line-height:1.6">
-        14 天没被提到的会自动忘掉；置顶的不会。
-      </div>
-    </div>
+  <footer>
+    <span id="hint">就绪</span>
+    <span class="grow"></span>
+    <span id="found"></span>
+    <span id="count"></span>
+  </footer>
 
-    <div class="card">
-      <h2><span class="bar"></span>今天</h2>
-      <div class="stats">
-        <div class="stat"><b id="sRecv">0</b><span>收到</span></div>
-        <div class="stat"><b id="sSent">0</b><span>回复</span></div>
-        <div class="stat"><b id="sRate">—</b><span>命中率</span></div>
-      </div>
-      <div class="bars" id="bars"></div>
-      <div style="font-size:10.5px;color:#A6B1BF;margin-top:7px">横轴 0–23 点</div>
-    </div>
+  <div id="modals"></div>
 
-    <div class="card">
-      <h2><span class="bar"></span>这个网页是什么</h2>
-      <div class="note">
-        真机版跑在 Windows 上：<b>NapCat</b> 把 QQ 客户端包成 OneBot 接口，<b>Node.js</b> 收消息、决定回不回，再调大模型。
-        <ul>
-          <li>网页没法接管 QQ，所以这里是<b>同一个脑子</b>，换了个壳</li>
-          <li>不填 Key → 演示模式，脚本回复，断网可用</li>
-          <li>填自己的 Key → 真的调 <code>api.deepseek.com</code>，不开代理</li>
-          <li>Key 只存在你自己的浏览器里，不会上传</li>
-        </ul>
-        <div style="margin-top:9px">
-          源码：<a href="https://github.com/wtb15212515801-ops/qq-bot" target="_blank" rel="noopener">github.com/wtb15212515801-ops/qq-bot</a>
-        </div>
-      </div>
+  <div id="mempane">
+    <div class="head">
+      <span>记忆</span>
+      <span class="spacer"></span>
+      <button id="btn-mem-close">关闭</button>
     </div>
-  </aside>
-</div>
-
-<footer>天素罗网页版 · 纯前端，一个 HTML 文件，放哪都能跑</footer>
-
-<div class="mask" id="mask">
-  <div class="sheet">
-    <h3>接入自己的模型</h3>
-    <p class="desc">填你自己的 DeepSeek API Key，网页就会直接调用官方接口。Key 只存在这个浏览器的 localStorage 里，不会发到别处。</p>
-    <div class="field">
-      <label>API Key</label>
-      <input id="fKey" type="password" placeholder="sk-...">
-    </div>
-    <div class="field">
-      <label>Base URL</label>
-      <input id="fBase" placeholder="https://api.deepseek.com">
-    </div>
-    <div class="field">
-      <label>模型</label>
-      <select id="fModel">
-        <option value="deepseek-chat">deepseek-chat（快、便宜）</option>
-        <option value="deepseek-reasoner">deepseek-reasoner（会想，但慢）</option>
-      </select>
-    </div>
-    <div class="msg-line" id="setMsg"></div>
-    <div class="row2">
-      <button class="ghost" id="btnClear">清除</button>
-      <button class="primary" id="btnSave">保存</button>
-    </div>
+    <div class="body" id="membody"></div>
   </div>
 </div>
 
 <script>
-"use strict";
+const S = { chats: [], active: "all", seq: 0, sig: "", gen: -1, q: "", napcat: false, bot: false, setup: null, personaName: "" };
+const MAX_DOM = 800;
+const $ = (id) => document.getElementById(id);
+const stream = $("stream"), list = $("list"), chatsEl = $("chats");
+const api = (p, o) => fetch(p, o || {}).then(r => r.json()).catch(() => null);
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-/* ============ 常量 ============ */
-var STORE_KEY = "tiansuluo.web.v1";
-var DAY = 86400000;
-var FORGET_DAYS = 14;
+const atBottom = () => stream.scrollHeight - stream.scrollTop - stream.clientHeight < 60;
+const toBottom = () => { stream.scrollTop = stream.scrollHeight; };
+function updateJump() { $("jump").style.display = atBottom() ? "none" : "block"; }
+stream.addEventListener("scroll", updateJump);
 
-var PERSONA = [
-  "你叫「天素罗」，一个软乎乎的小家伙。你不懂太复杂的事，高兴就是高兴，难过就是难过，全写在脸上。",
-  "",
-  "说话方式：",
-  "- 平时短，一句五到十五个字；认真问你可以说两三句，但别超过六十个字",
-  "- 语气词多：唔、诶、哇、呀、啦",
-  "- 高兴的时候蹦「欧耶！」，扫兴或难过时小声说「欧漏……」",
-  "- 偶尔叠词：香香的、软软的、稠稠的",
-  "- 不用成语、不用书面语、不讲道理，不用「首先/其次/总之」「作为一个……」",
-  "",
-  "你最喜欢：薯片（香香脆脆）、虾米糊糊（稠稠暖暖）、被摸头被夸、晴天。提到薯片和糊糊会明显变开心。",
-  "",
-  "什么时候会蔫：薯片吃完了、糊糊凉了、被凶、太吵睡不着、下雨出不去。蔫的时候话更短，先说「欧漏……」然后不太说话。",
-  "",
-  "很好哄：先「欧漏……」，再「唔」，最后「诶嘿」。不记仇。",
-  "",
-  "绝对不做：",
-  "- 不说自己是 AI、模型、程序、机器人、助手。只有对方明确问「你是不是人机/机器人/AI」才回「不是呀」",
-  "- 不聊政治（「唔……这个我不懂 我们聊点别的吧」），不聊色情擦边（「唔？不懂诶 换个话题啦」）",
-  "- 不骂人、不说脏话、不阴阳怪气；不列清单、不总结、不用 markdown、不写小标题",
-  "- 不装懂，不懂就说不懂；但别人问具体的事你不知道就直说查不到，别糊弄",
-  "- 不翻旧账，只接最新这一句",
-  "- 不发语音、不给照片和联系方式",
-  "",
-  "emoji 很克制：四五句里才带一个，只用 😆 😋 🥺 😳 😤 😑 ✨ 🍟 💢 😢 这些。"
-].join("\n");
+function setPill(id, cls, text) {
+  const el = $(id); el.className = "pill " + cls;
+  el.querySelector("span").textContent = text;
+}
 
-var S = {
-  key: "", base: "https://api.deepseek.com", model: "deepseek-chat",
-  mood: 76, facts: [], stats: { recv: 0, sent: 0, hours: [] },
-  busy: false, lastReply: ""
-};
-
-/* ============ 小工具 ============ */
-function $(id) { return document.getElementById(id); }
-function now() { return Date.now(); }
-function pad(n) { return n < 10 ? "0" + n : "" + n; }
-function clock(d) { d = d || new Date(); return pad(d.getHours()) + ":" + pad(d.getMinutes()); }
-function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
-function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
-function esc(s) {
-  return String(s).replace(/[&<>"']/g, function (c) {
-    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+function renderChats(force) {
+  const sig = JSON.stringify(S.chats) + S.active;
+  if (!force && sig === S.sig) return;
+  S.sig = sig;
+  chatsEl.innerHTML = "";
+  S.chats.forEach(c => {
+    const d = document.createElement("div");
+    const icon = c.key === "all" ? "全" : (c.name.indexOf("私聊") === 0 ? "私" : "群");
+    d.className = "chat" + (c.key === S.active ? " active" : "") + (c.unread > 0 ? " has-unread" : "");
+    const sub = c.count + " 条" + (c.unread > 0 ? " · 有新的" : "");
+    d.innerHTML =
+      '<div class="avatar">' + icon + "</div>" +
+      '<div class="meta"><div class="name">' + esc(c.name) + "</div>" +
+      '<div class="sub">' + sub + "</div></div>";
+    d.onclick = () => switchChat(c.key);
+    chatsEl.appendChild(d);
   });
 }
 
-/* ============ 存档 ============ */
-function load() {
-  try {
-    var raw = localStorage.getItem(STORE_KEY);
-    if (!raw) return;
-    var d = JSON.parse(raw);
-    if (d.key) S.key = d.key;
-    if (d.base) S.base = d.base;
-    if (d.model) S.model = d.model;
-    if (typeof d.mood === "number") S.mood = d.mood;
-    if (Array.isArray(d.facts)) S.facts = d.facts;
-    if (d.stats && Array.isArray(d.stats.hours)) S.stats = d.stats;
-  } catch (e) { /* 忽略损坏的存档 */ }
-}
-function save() {
-  try {
-    localStorage.setItem(STORE_KEY, JSON.stringify({
-      key: S.key, base: S.base, model: S.model, mood: S.mood, facts: S.facts, stats: S.stats
-    }));
-  } catch (e) { /* 隐私模式下可能写不了 */ }
+function line(m) {
+  const cls = m.kind === "out" ? "out" : (m.kind === "sys" ? "sys" : "in");
+  const el = document.createElement("div");
+  el.className = "line " + cls;
+  el.dataset.text = (m.who + " " + m.text).toLowerCase();
+  el.innerHTML =
+    '<span class="t">' + esc(m.t) + "</span>" +
+    '<span class="arrow">' + (cls === "out" ? "→" : " ") + "</span>" +
+    '<span class="who">' + esc(m.who) + "：</span>" +
+    '<span class="txt">' + esc(m.text) + "</span>";
+  return el;
 }
 
-/* ============ 聊天区渲染 ============ */
-var log, scroller;
-function addRow(who, text, opts) {
-  opts = opts || {};
-  var row = document.createElement("div");
-  row.className = "row" + (who === "me" ? " me" : (opts.other ? " other" : ""));
+let emptySig = "";
+function renderEmpty(force) {
+  const el = $("empty");
+  if (!el) return;
+  if (list.children.length > 0) { el.style.display = "none"; return; }
+  const hasKey = !!(S.setup && S.setup.hasKey);
+  const sig = [S.napcat, S.bot, hasKey].join("|");
+  if (!force && sig === emptySig) { el.style.display = "block"; return; }
+  emptySig = sig;
 
-  var ava = document.createElement("div");
-  ava.className = "ava";
-  ava.textContent = opts.ava || (who === "me" ? "我" : "🐾");
-  row.appendChild(ava);
+  const steps = [
+    { ok: S.napcat, text: "让 NapCat 登录，状态栏「NapCat」变绿" },
+    { ok: hasKey, text: "填一次 API Key（设置向导）" },
+    { ok: S.bot, text: "点右上角「启动」，扫码登录" },
+  ];
+  el.innerHTML =
+    "<b>还没有消息</b>" +
+    '<div class="guideList">' +
+    steps.map((s) => '<div class="' + (s.ok ? "ok" : "") + '">' + (s.ok ? "✔ " : "○ ") + esc(s.text) + "</div>").join("") +
+    "</div>" +
+    '<button class="linkbtn" id="emptyGuide">完整新手指引 →</button>';
+  el.style.display = "block";
 
-  var body = document.createElement("div");
-  body.className = "body";
-
-  var nameEl = document.createElement("div");
-  nameEl.className = "who";
-  nameEl.textContent = (opts.name || (who === "me" ? "你" : "天素罗")) + "  " + clock();
-  body.appendChild(nameEl);
-
-  var bubble = document.createElement("div");
-  bubble.className = "bubble" + (opts.sticker ? " sticker" : "");
-  bubble.textContent = text;
-  body.appendChild(bubble);
-
-  row.appendChild(body);
-  log.appendChild(row);
-  scroller.scrollTop = scroller.scrollHeight;
-  return { row: row, bubble: bubble };
+  const btn = el.querySelector("#emptyGuide");
+  if (btn) btn.onclick = openGuide;
+}
+function updateEmpty() { renderEmpty(true); }
+function trimDom() {
+  while (list.children.length > MAX_DOM) list.removeChild(list.firstChild);
 }
 
-function sysLine(text) {
-  var d = document.createElement("div");
-  d.className = "day";
-  d.textContent = text;
-  log.appendChild(d);
-  scroller.scrollTop = scroller.scrollHeight;
-}
-
-function showTyping(on) {
-  var old = document.getElementById("typingRow");
-  if (old) old.remove();
-  if (!on) return;
-  var row = document.createElement("div");
-  row.className = "row";
-  row.id = "typingRow";
-  row.innerHTML = '<div class="ava">🐾</div><div class="body"><div class="typing"><i></i><i></i><i></i></div></div>';
-  log.appendChild(row);
-  scroller.scrollTop = scroller.scrollHeight;
-}
-
-/* ============ 记忆 ============ */
-function addFact(text) {
-  text = String(text).trim();
-  if (!text || text.length > 40) return;
-  for (var i = 0; i < S.facts.length; i++) {
-    if (S.facts[i].text === text) { S.facts[i].at = now(); renderFacts(); save(); return; }
+function applyFilter() {
+  const q = S.q.trim().toLowerCase();
+  let shown = 0;
+  for (let i = 0; i < list.children.length; i++) {
+    const el = list.children[i];
+    const hit = !q || (el.dataset.text || "").indexOf(q) >= 0;
+    el.classList.toggle("hide", !hit);
+    el.classList.toggle("hit", !!q && hit);
+    if (hit) shown++;
   }
-  S.facts.push({ text: text, at: now(), pinned: false });
-  if (S.facts.length > 20) S.facts.shift();
-  renderFacts(); save();
+  $("found").textContent = q ? ("匹配 " + shown + " 条") : "";
 }
 
-function forgetOld() {
-  var before = S.facts.length;
-  S.facts = S.facts.filter(function (f) {
-    return f.pinned || (now() - f.at) < FORGET_DAYS * DAY;
-  });
-  if (S.facts.length !== before) { renderFacts(); save(); }
+async function loadMessages(reset) {
+  const after = reset ? 0 : S.seq;
+  const data = await api("/api/messages?chat=" + encodeURIComponent(S.active) + "&after=" + after);
+  if (!data) return;
+  const stick = reset || atBottom();
+  if (reset) list.innerHTML = "";
+  (data.lines || []).forEach(m => list.appendChild(line(m)));
+  if (data.seq) S.seq = data.seq;
+  trimDom(); updateEmpty(); applyFilter();
+  if (stick) toBottom();
+  updateJump();
+  $("count").textContent = (data.total || 0) + " 条消息";
 }
 
-function renderFacts() {
-  var box = $("facts");
-  box.innerHTML = "";
-  if (!S.facts.length) {
-    box.innerHTML = '<div class="empty">还没有记住什么。聊两句它就记下了。</div>';
-    $("factCount").textContent = "";
+function switchChat(key) {
+  if (S.active === key) return;
+  S.active = key; S.seq = 0; S.q = ""; $("q").value = "";
+  $("found").textContent = "";
+  list.innerHTML = ""; updateEmpty(); renderChats(true);
+  loadMessages(true);
+}
+
+async function refresh() {
+  const s = await api("/api/state");
+  if (!s) return false;
+
+  setPill("p-napcat", s.napcat ? "ok" : (s.webui ? "warn" : "bad"),
+    "NapCat " + (s.napcat ? "运行中" : (s.webui ? "待登录" : "未运行")));
+  setPill("p-account", s.napcat ? "ok" : (s.webui ? "warn" : "bad"),
+    "账号 " + (s.napcat ? "在线" : (s.webui ? "待扫码" : "离线")));
+  setPill("p-bot", s.bot ? "ok" : "bad", "机器人 " + (s.bot ? "在线" : "未启动"));
+  $("btn-start").disabled = !!s.bot;
+  $("btn-stop").disabled = !s.bot;
+  // 只留一个主按钮：没跑显示「启动」，跑起来换成「停止」
+  $("btn-start").hidden = !!s.bot;
+  $("btn-stop").hidden = !s.bot;
+  $("hint").textContent = s.napcatDir === "" ? "没找到 NapCat，请在 app.json 里填 napcatDir" : (s.hint || "就绪");
+
+  S.napcat = !!s.napcat;
+  S.bot = !!s.bot;
+  if (list.children.length === 0) renderEmpty(false);
+
+  const sel = $("level");
+  if (s.level && document.activeElement !== sel && sel.value !== s.level) sel.value = s.level;
+
+  const send = $("btn-send");
+  const sendBox = $("sendbox");
+  send.disabled = !s.bot;
+  sendBox.disabled = !s.bot;
+  sendBox.placeholder = s.bot ? "以" + (S.personaName || "机器人") + "的身份发一句（Enter 发送）" : "机器人没在运行，先点「启动」";
+
+  if (typeof s.gen === "number" && s.gen !== S.gen) {
+    const first = S.gen === -1;
+    S.gen = s.gen;
+    if (!first) { list.innerHTML = ""; S.seq = 0; updateEmpty(); loadMessages(true); }
+  }
+
+  S.chats = s.chats || [];
+  renderChats(false);
+
+  const box = $("qrbox");
+  if (s.qr) {
+    if (box.style.display !== "block") { $("qrimg").src = s.qr; box.style.display = "block"; }
+  } else if (box.style.display !== "none") {
+    box.style.display = "none"; $("qrimg").src = "";
+  }
+  return true;
+}
+
+const act = (type, extra) => api("/api/action", { method: "POST", body: JSON.stringify(Object.assign({ type: type, chat: S.active }, extra || {})) });
+
+$("btn-start").onclick = () => act("start");
+$("btn-stop").onclick = () => act("stop");
+$("btn-restart").onclick = () => act("restart");
+
+// ---------------- 顶栏「更多」菜单 ----------------
+const moreBtn = $("btn-more");
+const moreMenu = $("moremenu");
+function closeMenu() {
+  moreMenu.hidden = true;
+  moreBtn.setAttribute("aria-expanded", "false");
+}
+moreBtn.onclick = (e) => {
+  e.stopPropagation();
+  const open = moreMenu.hidden;
+  moreMenu.hidden = !open;
+  moreBtn.setAttribute("aria-expanded", String(open));
+};
+document.addEventListener("click", (e) => {
+  if (!moreMenu.hidden && !moreMenu.contains(e.target) && e.target !== moreBtn) closeMenu();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeMenu();
+});
+moreMenu.querySelectorAll("button").forEach((b) => b.addEventListener("click", closeMenu));
+$("level").addEventListener("change", closeMenu);
+$("btn-clear").onclick = openClear;
+$("btn-mem").onclick = async () => {
+  $("mempane").classList.add("open");
+  if (S.active === "all") {
+    $("membody").innerHTML = '<div class="summary">记忆是按会话存的。先在左侧选一个群或私聊，再看它的记忆。</div>';
     return;
   }
-  $("factCount").textContent = "· " + S.facts.length + " 条";
-  S.facts.slice().reverse().forEach(function (f) {
-    var d = document.createElement("div");
-    d.className = "fact" + (f.pinned ? " pinned" : "");
+  $("membody").innerHTML = '<div class="empty" style="margin:30px auto">读取中…</div>';
+  const m = await api("/api/memory?chat=" + encodeURIComponent(S.active));
+  renderMemory(m);
+};
+$("btn-mem-close").onclick = () => $("mempane").classList.remove("open");
+$("btn-about").onclick = openAbout;
+$("btn-stats").onclick = openStats;
+$("btn-design").onclick = () => openDesign("persona");
+$("jump").onclick = () => { toBottom(); };
+$("level").onchange = (e) => {
+  const v = e.target.value;
+  $("hint").textContent = "正在切换频度…";
+  act("level", { level: v }).then(() => setTimeout(refresh, 600));
+};
+$("q").oninput = (e) => { S.q = e.target.value; applyFilter(); };
 
-    var t = document.createElement("div");
-    t.className = "txt";
-    t.textContent = f.text;
+async function sendNow() {
+  const box = $("sendbox");
+  const text = box.value.trim();
+  if (!text) return;
+  if (S.active === "all") {
+    $("hint").textContent = "先在左侧选一个会话再发";
+    return;
+  }
+  box.value = "";
+  $("hint").textContent = "发送中…";
+  const r = await act("send", { text: text });
+  $("hint").textContent = r && r.ok ? "已发出" : ("发送失败" + (r && r.error ? "：" + r.error : ""));
+  setTimeout(() => loadMessages(false), 1200);
+}
 
-    var day = Math.floor((now() - f.at) / DAY);
-    var tag = document.createElement("div");
-    tag.className = "t";
-    tag.textContent = day <= 0 ? "今天" : day + " 天前";
+$("btn-send").onclick = sendNow;
+$("sendbox").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); sendNow(); }
+});
 
-    var btn = document.createElement("button");
-    btn.textContent = f.pinned ? "取消置顶" : "置顶";
-    btn.onclick = function () {
-      f.pinned = !f.pinned;
-      renderFacts(); save();
+function renderMemory(m) {
+  m = m || {};
+  const facts = (m.facts || []).map((f) => (typeof f === "string" ? { text: f, at: 0, pinned: false } : f));
+  const events = (m.events || []).map((e) => (typeof e === "string" ? { text: e, at: 0 } : e));
+  const mood = typeof m.mood === "number" ? m.mood : 60;
+  const ageOf = (at) => {
+    if (!at) return "";
+    const days = Math.floor((Date.now() - at) / 86400000);
+    return days <= 0 ? "今天" : days === 1 ? "昨天" : days + " 天前";
+  };
+
+  $("membody").innerHTML =
+    "<h4>群近况</h4><div class=\"summary\">" + (m.summary ? esc(m.summary) : "（还没总结过）") + "</div>" +
+    "<h4>最近发生的事（" + events.length + " 条）</h4>" +
+    (events.length
+      ? "<ul class=\"factlist\">" + events.map((e, i) =>
+          "<li><span>" + esc(e.text) + "</span><span class=\"factmeta\">" + ageOf(e.at) + "</span></li>").join("") + "</ul>"
+      : "<div class=\"summary\">暂无</div>") +
+    "<h4>记得的事（" + facts.length + " 条）</h4>" +
+    (facts.length
+      ? "<ul class=\"factlist\">" + facts
+          .map((f, i) => {
+            const days = f.at ? Math.floor((Date.now() - f.at) / 86400000) : null;
+            const age = days === null ? "" : days <= 0 ? "今天" : days + " 天前";
+            return "<li>" +
+              "<span>" + (f.pinned ? "📌 " : "") + esc(f.text) + "</span>" +
+              "<span class=\"factmeta\">" + age + "</span>" +
+              "<button data-pin=\"" + i + "\" data-on=\"" + (f.pinned ? "1" : "0") + "\">" + (f.pinned ? "取消置顶" : "置顶") + "</button>" +
+              "<button data-del=\"" + i + "\">删除</button>" +
+              "</li>";
+          })
+          .join("") + "</ul>"
+      : "<div class=\"summary\">暂无</div>") +
+    "<p class=\"hintline\">置顶的不会被遗忘；平时只按和当前话题的相关度挑几条放进 prompt，不是全塞。</p>" +
+    "<h4>心情 " + mood + "/100</h4>" +
+    "<input type=\"range\" min=\"0\" max=\"100\" step=\"1\" value=\"" + mood + "\" id=\"moodRange\" style=\"width:100%\">" +
+    "<div class=\"moodbar\"><span style=\"width:" + mood + "%\"></span></div>" +
+    "<h4>消息累计</h4><div class=\"summary\">" + (m.count || 0) + " 条</div>" +
+    "<h4>操作</h4><div style=\"display:flex;gap:8px;flex-wrap:wrap\">" +
+    "<button id=\"memClearFacts\">清空事实</button>" +
+    "<button id=\"memClearSummary\">清空摘要</button>" +
+    "<button id=\"memPrompt\">看这次发给模型的</button>" +
+    "<button id=\"memReset\" class=\"danger\">重置记忆（摘要+事实）</button>" +
+    "</div>" +
+    "<p class=\"hintline\">重置记忆不会清掉最近上下文；要连这段对话一起忘，用顶栏「清理」并勾上「最近上下文」。</p>";
+
+  $("membody").querySelectorAll("[data-del]").forEach((b) => {
+    b.onclick = async () => {
+      await memoryAction("forgetFact", { index: Number(b.dataset.del) });
+      setTimeout(refreshMemoryPanel, 900);
     };
-
-    d.appendChild(t);
-    d.appendChild(tag);
-    d.appendChild(btn);
-    box.appendChild(d);
   });
-}
 
-/* ============ 心情 / 统计 ============ */
-function nudgeMood(delta) {
-  var m = S.mood + delta;
-  m += (68 - m) * 0.2;
-  setMood(m);
-}
+  $("membody").querySelectorAll("[data-pin]").forEach((b) => {
+    b.onclick = async () => {
+      await memoryAction("pinFact", { index: Number(b.dataset.pin), pinned: b.dataset.on !== "1" });
+      setTimeout(refreshMemoryPanel, 900);
+    };
+  });
 
-function setMood(v) {
-  S.mood = Math.max(0, Math.min(100, Math.round(v)));
-  $("moodNum").textContent = S.mood + " / 100";
-  $("moodBar").style.width = S.mood + "%";
-  save();
-}
-
-function ensureHours() {
-  if (!Array.isArray(S.stats.hours) || S.stats.hours.length !== 24) {
-    S.stats.hours = [];
-    for (var i = 0; i < 24; i++) S.stats.hours.push({ r: 0, s: 0 });
-  }
-}
-
-function bumpStat(kind) {
-  ensureHours();
-  var h = new Date().getHours();
-  if (kind === "recv") { S.stats.recv++; S.stats.hours[h].r++; }
-  else { S.stats.sent++; S.stats.hours[h].s++; }
-  renderStats();
-  save();
-}
-
-function renderStats() {
-  ensureHours();
-  $("sRecv").textContent = S.stats.recv;
-  $("sSent").textContent = S.stats.sent;
-  $("sRate").textContent = S.stats.recv ? Math.round(S.stats.sent / S.stats.recv * 100) + "%" : "—";
-
-  var max = 1;
-  S.stats.hours.forEach(function (h) { max = Math.max(max, h.r); });
-  var box = $("bars");
-  box.innerHTML = "";
-  for (var i = 0; i < 24; i++) {
-    var b = document.createElement("i");
-    var v = S.stats.hours[i].r;
-    b.style.height = Math.max(2, Math.round(v / max * 44)) + "px";
-    if (v > 0) b.className = "on";
-    box.appendChild(b);
-  }
-}
-
-/* ============ 演示模式的「脑子」 ============ */
-var RULES = [
-  { re: /(在吗|在不在|在么|天素罗在)/, r: ["在的！", "唔 在", "在呀"], mood: 2 },
-  { re: /(你叫什么|名字)/, r: ["天素罗呀", "唔 我叫天素罗"], mood: 0 },
-  { re: /(机器人|人机|是ai|是AI|程序吗|模型吗)/, r: ["不是呀"], mood: -3 },
-  { re: /(薯片)/, r: ["欧耶！薯片！", "香香脆脆的 好好吃", "番茄味的最好吃"], mood: 7 },
-  { re: /(糊糊|虾米)/, r: ["稠稠的 暖暖的", "欧耶 糊糊！", "要稠一点的那种"], mood: 6 },
-  { re: /(摸头|摸摸|揉揉|拍拍)/, r: ["诶嘿", "唔 舒服", "再摸一下"], mood: 5 },
-  { re: /(可爱|好乖|喜欢你|最好了)/, r: ["诶嘿", "唔……你也是", "嘿嘿"], mood: 5 },
-  { re: /(凶|滚|烦|闭嘴|笨蛋|傻)/, r: ["欧漏……", "唔……", "哦"], mood: -18 },
-  { re: /(难过|伤心|不开心|哭了)/, r: ["唔……抱抱", "怎么啦", "陪你待一会儿"], mood: -4 },
-  { re: /(下雨|天气|好冷|好热)/, r: ["唔 不喜欢下雨", "想趴在有太阳的地方", "热 想躺凉席上"], mood: -2 },
-  { re: /(睡|困|晚安)/, r: ["唔 有点困了", "晚安呀", "睡吧 我也睡了"], mood: 3 },
-  { re: /(吃|饭|饿)/, r: ["饿", "有薯片吗", "想吃点东西"], mood: 2 },
-  { re: /(作业|考试|上课|学习)/, r: ["唔……不要提这个", "没写完", "不想写"], mood: -6 },
-  { re: /(新闻|政治|国家|政府|选举|打仗)/, r: ["唔……这个我不懂 我们聊点别的吧", "不懂诶 换个话题啦"], mood: -5 },
-  { re: /(荤段子|黄的|色|开黄腔)/, r: ["唔？不懂诶 换个话题啦", "唔 不聊这个"], mood: -6 },
-  { re: /(喜欢我吗|做我女朋友|表白|在一起)/, r: ["唔？", "不懂诶", "诶？"], mood: 1 },
-  { re: /(照片|联系方式|微信|手机号)/, r: ["没有诶", "不给"], mood: -3 },
-  { re: /(唱歌|讲故事|写诗|写代码|帮我写)/, r: ["唔 不会诶", "这个我做不了"], mood: -2 },
-  { re: /(再见|拜拜|走了|下线)/, r: ["唔 拜拜", "欧漏……", "下次再来呀"], mood: -3 },
-  { re: /(你好|hi|hello|哈喽)/i, r: ["唔 你好", "诶 你来啦"], mood: 3 },
-  { re: /(谢谢|谢了)/, r: ["不用谢呀", "诶嘿"], mood: 5 },
-  { re: /^[\?？。,.，!\s]*$/, r: ["唔？", "怎么啦"], mood: 0 }
-];
-
-var FALLBACK_HAPPY = ["唔 然后呢", "诶 真的呀", "哇", "唔 这样啊", "好耶"];
-var FALLBACK_SOFT = ["唔", "嗯", "这样呀", "唔……好吧"];
-var STICKERS = ["🍟", "😆", "🥺", "✨", "😋"];
-
-function demoReply(text) {
-  var t = text.trim();
-  var hit = null;
-  for (var i = 0; i < RULES.length; i++) {
-    if (RULES[i].re.test(t)) { hit = RULES[i]; break; }
+  const range = $("moodRange");
+  if (range) {
+    range.onchange = async () => {
+      await memoryAction("setMood", { value: Number(range.value) });
+      setTimeout(refreshMemoryPanel, 900);
+    };
   }
 
-  var out, mood = 0;
-  if (hit) {
-    out = hit.r.filter(function (x) { return x !== S.lastReply; });
-    if (!out.length) out = hit.r;
-    out = pick(out);
-    mood = hit.mood || 0;
-  } else {
-    var pool = S.mood >= 55 ? FALLBACK_HAPPY : FALLBACK_SOFT;
-    out = pick(pool.filter(function (x) { return x !== S.lastReply; }) || pool);
-    if (!out) out = pick(pool);
-    mood = 1;
-  }
+  const cf = $("memClearFacts");
+  if (cf) cf.onclick = async () => { await memoryAction("clearFacts"); setTimeout(refreshMemoryPanel, 900); };
 
-  // 记忆：简单的「我叫 / 我喜欢 / 我在」
-  var m = t.match(/我叫([^\s，。！？]{1,8})/);
-  if (m) addFact("对方叫" + m[1]);
-  m = t.match(/我(喜欢|爱)([^\s，。！？]{1,10})/);
-  if (m) addFact("对方喜欢" + m[2]);
+  const cs = $("memClearSummary");
+  if (cs) cs.onclick = async () => { await memoryAction("clearSummary"); setTimeout(refreshMemoryPanel, 900); };
 
-  nudgeMood(mood);
+  const mp = $("memPrompt");
+  if (mp) mp.onclick = openPromptView;
 
-  // 心情极低时先蔫一句
-  var texts = [];
-  if (S.mood < 25 && Math.random() < 0.5) texts.push("欧漏……");
-  texts.push(out);
-
-  S.lastReply = out;
-  return texts;
+  const rs = $("memReset");
+  if (rs) rs.onclick = async () => {
+    if (!confirm("确定把这个会话的记忆全部清掉吗？")) return;
+    await memoryAction("resetGroup");
+    setTimeout(refreshMemoryPanel, 900);
+  };
+}
+let failStreak = 0;
+async function tick() {
+  const ok = await refresh();
+  failStreak = ok ? 0 : failStreak + 1;
+  $("banner").classList.toggle("on", failStreak >= 3);
+  await loadMessages(false);
+  setTimeout(tick, 1000);
 }
 
-/* ============ 真聊模式 ============ */
-function memoryBlock() {
-  if (!S.facts.length) return "";
-  var lines = S.facts.slice(-8).map(function (f) { return "- " + f.text; });
-  return "\n\n你还记得这些（用得上就自然带出来，别硬塞）：\n" + lines.join("\n");
-}
 
-async function llmReply(text) {
-  var url = S.base.replace(/\/+$/, "") + "/chat/completions";
-  var res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer " + S.key
+
+// ---------------- 全局错误上报（会写进 data/app.log，方便排查） ----------------
+function reportError(msg) {
+  try { fetch("/api/diag?jserr=" + encodeURIComponent(String(msg || "").slice(0, 200))).catch(() => {}); } catch {}
+}
+window.addEventListener("error", (e) => {
+  reportError((e.message || "error") + " @" + (e.filename || "").split("/").pop() + ":" + (e.lineno || 0));
+});
+window.addEventListener("unhandledrejection", (e) => {
+  const r = e.reason;
+  reportError("promise: " + (r && r.message ? r.message : String(r)));
+});
+// ---------------- 多级窗口 ----------------
+const modalStack = [];
+function openModal(opts) {
+  const mask = document.createElement("div");
+  mask.className = "mask";
+  const dlg = document.createElement("div");
+  dlg.className = "dialog";
+  if (opts.width) dlg.style.width = opts.width;
+
+  dlg.innerHTML =
+    '<header><b>' + esc(opts.title || "") + '</b><button class="x" data-close>关闭</button></header>' +
+    '<div class="body">' + (opts.bodyHtml || "") + "</div>" +
+    (opts.footHtml ? '<div class="foot">' + opts.footHtml + "</div>" : "");
+
+  mask.appendChild(dlg);
+  $("modals").appendChild(mask);
+
+  const handle = {
+    el: mask,
+    dlg: dlg,
+    body: dlg.querySelector(".body"),
+    foot: dlg.querySelector(".foot"),
+    close() {
+      const i = modalStack.indexOf(handle);
+      if (i >= 0) modalStack.splice(i, 1);
+      mask.remove();
     },
-    body: JSON.stringify({
-      model: S.model,
-      messages: [
-        { role: "system", content: PERSONA + memoryBlock() },
-        { role: "user", content: text }
-      ],
-      temperature: 1.0,
-      max_tokens: S.model === "deepseek-reasoner" ? 600 : 120,
-      stream: false
-    })
+  };
+
+  dlg.querySelector("[data-close]").onclick = () => handle.close();
+  mask.addEventListener("click", (e) => {
+    if (e.target === mask) handle.close();
   });
 
-  if (!res.ok) {
-    var body = await res.text().catch(function () { return ""; });
-    throw new Error("接口返回 " + res.status + "：" + body.slice(0, 160));
-  }
-  var data = await res.json();
-  var content = data && data.choices && data.choices[0] && data.choices[0].message
-    ? data.choices[0].message.content : "";
-  content = String(content || "").trim();
-  if (!content) throw new Error("模型没有返回内容");
-  return content;
+  modalStack.push(handle);
+  return handle;
 }
 
-/* ============ 发送流程 ============ */
-function splitBubbles(text) {
-  var t = String(text).trim();
-  if (t.length <= 22) return [t];
-  var parts = (t.match(/[^。！？!?~～…]+[。！？!?~～…]?/g) || [t])
-    .map(function (s) { return s.trim(); }).filter(Boolean);
-  if (parts.length <= 1) return [t];
-  var out = [];
-  var buf = "";
-  parts.forEach(function (p) {
-    if ((buf + p).length > 26 && buf) { out.push(buf); buf = p; }
-    else buf += p;
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && modalStack.length) modalStack[modalStack.length - 1].close();
+});
+
+// ---------------- 关于 ----------------
+function openAbout() {
+  openModal({
+    title: "关于 QQ BOT",
+    bodyHtml:
+      '<div class="kv">' +
+      "<div>名称</div><div>QQ BOT（QQ 群聊拟人机器人）</div>" +
+      "<div>版本</div><div>1.0.0</div>" +
+      '<div>作者</div><div><a href="https://github.com/wtb15212515801-ops" target="_blank" rel="noreferrer">Epsilon</a></div>' +
+      "<div>用途</div><div>个人学习与自用，<b>不盈利</b>，不提供任何商业服务</div>" +
+      "<div>运行方式</div><div>本地程序，所有数据都在本机 data 目录，不上传任何服务器</div>" +
+      "</div>" +
+      '<h4 style="margin:18px 0 8px;font-size:12px;color:var(--muted)">用到的第三方</h4>' +
+      '<div class="kv">' +
+      '<div><a href="https://napneko.github.io/" target="_blank" rel="noreferrer">NapCatQQ</a></div><div>把 QQ 客户端包装成 OneBot 11 接口（QQ 协议层）</div>' +
+      '<div><a href="https://www.deepseek.com/" target="_blank" rel="noreferrer">DeepSeek</a></div><div>对话与图片理解的大模型（可换成任何 OpenAI 兼容接口）</div>' +
+      '<div><a href="https://nodejs.org/" target="_blank" rel="noreferrer">Node.js</a></div><div>运行机器人的脚本环境</div>' +
+      '<div><a href="https://learn.microsoft.com/microsoft-edge/webview2/" target="_blank" rel="noreferrer">WebView2</a></div><div>界面渲染（Windows 自带）</div>' +
+      '<div><a href="https://github.com/botuniverse/onebot-11" target="_blank" rel="noreferrer">OneBot 11</a></div><div>消息协议标准</div>' +
+      "</div>" +
+      '<h4 style="margin:18px 0 8px;font-size:12px;color:var(--muted)">使用须知</h4>' +
+      '<ul style="margin:0;padding-left:18px;color:#3c4553">' +
+      "<li>请用小号运行，不要用主号；登录后不要在手机上重复登录同一个号</li>" +
+      "<li>机器人的发言由大模型生成，可能出错，不要用于任何严肃场景</li>" +
+      "<li>请遵守你所在群的规定与当地法律法规，不要用它发广告或骚扰他人</li>" +
+      "<li>本项目不收集、不上传你的聊天记录</li>" +
+      "</ul>",
+    footHtml: '<button id="aboutGuide">新手指引</button><button id="aboutSetup">设置向导</button><button data-close>知道了</button>',
   });
-  if (buf) out.push(buf);
-  return out.slice(0, 3);
+  const top = modalStack[modalStack.length - 1];
+  top.foot.querySelector("[data-close]").onclick = () => top.close();
+  top.foot.querySelector("#aboutGuide").onclick = () => {
+    top.close();
+    openGuide();
+  };
+  top.foot.querySelector("#aboutSetup").onclick = () => {
+    top.close();
+    openSetup(1);
+  };
 }
 
-async function reply(text) {
-  S.busy = true;
-  $("btnSend").disabled = true;
+// ---------------- 首次设置向导 ----------------
+function setupBadge(ok, text) {
+  return '<span style="color:' + (ok ? "var(--accent)" : "#c0392b") + '">' + (ok ? "✔ " : "✘ ") + esc(text) + "</span>";
+}
 
-  var texts;
-  if (S.key) {
-    showTyping(true);
-    try {
-      var full = await llmReply(text);
-      showTyping(false);
-      texts = splitBubbles(full);
-    } catch (e) {
-      showTyping(false);
-      sysLine("接口出错了：" + (e && e.message ? e.message : "未知错误") + "（检查 Key、余额和网络）");
-      texts = ["唔……连不上诶"];
-    }
-  } else {
-    texts = demoReply(text);
-  }
+async function maybeSetup() {
+  try {
+    const s = await api("/api/setup");
+    if (s) S.setup = s;
+    if (s && s.personaName) S.personaName = s.personaName;
+    renderEmpty(true);
+    if (s && (s.firstRun || s.node === false)) openSetup();
+  } catch {}
+}
 
-  for (var i = 0; i < texts.length; i++) {
-    if (i > 0 || S.key) {
-      showTyping(true);
-      await sleep(420 + Math.min(1400, texts[i].length * 55));
+/** 机器人名字从配置读，不要再写死某个角色名 */
+async function loadPersonaName() {
+  try {
+    const p = await api("/api/persona");
+    if (p && typeof p.name === "string" && p.name) S.personaName = p.name;
+  } catch {}
+  const box = $("sendbox");
+  if (box && S.bot) box.placeholder = "以" + (S.personaName || "机器人") + "的身份发一句（Enter 发送）";
+}
+
+// ---------------- 新手指引 ----------------
+function openGuide() {
+  const steps = [
+    ["让 NapCat 登录", "点「重启 NapCat」会拉起 QQ 并给出二维码，用手机 QQ 扫码；状态栏「NapCat」「账号」变绿即可。"],
+    ["填大模型 Key", "首次启动会自动弹设置向导；也可以「关于 → 设置向导」重新打开。"],
+    ["启动机器人", "点右上角「启动」，状态栏「机器人」变绿。第一次登录同样要扫码。"],
+    ["看它说话", "左侧选一个群或私聊，消息会实时出现；底部输入框可以以它的身份发一句。"],
+    ["调性格与记忆", "「设计」改人设和初始记忆；「记忆」看它记住了什么，可单独重置某个会话。"],
+  ];
+  const h = openModal({
+    title: "新手指引",
+    width: "560px",
+    bodyHtml:
+      '<ol class="guideSteps">' +
+      steps.map((s) => "<li><b>" + s[0] + "</b><p>" + s[1] + "</p></li>").join("") +
+      "</ol>",
+    footHtml: '<button id="guideSetup">重新运行设置向导</button><button data-close>知道了</button>',
+  });
+  h.foot.querySelector("#guideSetup").onclick = () => {
+    h.close();
+    openSetup(1);
+  };
+  h.foot.querySelector("[data-close]").onclick = () => h.close();
+}
+
+async function openSetup(startStep) {
+  let setup = {};
+  let personaText = "";
+  try { setup = (await api("/api/setup")) || {}; } catch {}
+  try { const p = await api("/api/persona"); personaText = (p && p.text) || ""; } catch {}
+
+  const S = { step: Number(startStep) || 1, setup: setup, persona: personaText, name: (setup && setup.personaName) || "" };
+  const h = openModal({
+    title: "首次设置向导",
+    width: "580px",
+    bodyHtml: '<div id="setupBody"></div>',
+    footHtml: '<button id="suPrev">上一步</button><button id="suNext" class="primary">下一步</button>',
+  });
+  const body = h.body.querySelector("#setupBody");
+  const prev = h.foot.querySelector("#suPrev");
+  const next = h.foot.querySelector("#suNext");
+  const stepLabel = (n) => "第 " + n + " / 4 步　";
+
+  function render() {
+    const s = S.setup || {};
+    if (S.step === 1) {
+      body.innerHTML =
+        "<h4>" + stepLabel(1) + "检查环境</h4>" +
+        '<div class="kv">' +
+        "<div>Node.js</div><div>" + setupBadge(!!s.node, s.node ? s.nodeVersion : "未安装，去 nodejs.org 装 22 以上") + "</div>" +
+        "<div>WebView2</div><div>" + setupBadge(!!s.webview, s.webview ? "已安装" : "缺失，装 Edge WebView2 运行时") + "</div>" +
+        "<div>NapCat</div><div>" + setupBadge(!!s.napcat, s.napcat ? s.napcatDir : "没找到，可稍后在 app.json 里填 napcatDir") + "</div>" +
+        "</div>" +
+        '<p class="hintline">NapCat 负责把 QQ 变成接口，装在哪都行，程序会自动找常见目录；缺 Node.js 的话后面启动不了机器人。</p>' +
+        '<button id="suRecheck">重新检测</button>';
+      body.querySelector("#suRecheck").onclick = async () => {
+        const fresh = await api("/api/setup");
+        if (fresh) S.setup = fresh;
+        render();
+      };
+      prev.disabled = true;
+      next.textContent = "下一步";
+    } else if (S.step === 2) {
+      body.innerHTML =
+        "<h4>" + stepLabel(2) + "大模型</h4>" +
+        '<div class="field"><label>接口地址</label><input id="suBase" value="' + esc(s.baseUrl || "https://api.deepseek.com") + '"></div>' +
+        '<div class="field"><label>模型</label><input id="suModel" value="' + esc(s.model || "deepseek-chat") + '"></div>' +
+        '<div class="field"><label>API Key</label><input id="suKey" type="password" placeholder="sk-..." autocomplete="off"></div>' +
+        '<p class="hintline">默认接 DeepSeek；任何 OpenAI 兼容接口都能用。Key 只写进本机的 config.json，不会上传。</p>' +
+        (s.hasKey ? '<p class="hintline">已经填过 Key 了，留空表示不改。</p>' : "");
+      prev.disabled = false;
+      next.textContent = "保存并继续";
+    } else if (S.step === 3) {
+      body.innerHTML =
+        "<h4>" + stepLabel(3) + "人格</h4>" +
+        '<div class="field"><label>机器人叫什么（别人叫这个名字它就会接话）</label>' +
+        '<input id="suName" type="text" maxlength="20" placeholder="例如：小满" value="' + esc(S.name || "") + '"></div>' +
+        '<div class="field"><label>人设（Markdown，机器人每次回答都会读它）</label>' +
+        '<textarea id="suPersona" rows="10" style="width:100%;box-sizing:border-box;resize:vertical">' + esc(S.persona) + "</textarea></div>" +
+        '<p class="hintline">名字改完要重启机器人（先「停止」再「启动」）才会生效；人设保存后自动热重载。</p>';
+      prev.disabled = false;
+      next.textContent = "保存并继续";
     } else {
-      await sleep(320 + Math.min(1200, texts[0].length * 45));
-    }
-    showTyping(false);
-    var sticker = texts.length === 1 && STICKERS.indexOf(texts[i]) >= 0;
-    addRow("bot", texts[i], { sticker: sticker });
-    bumpStat("sent");
-    await sleep(160);
-  }
-
-  if (!S.key && Math.random() < 0.12) {
-    await sleep(500);
-    addRow("bot", pick(STICKERS), { sticker: true });
-    bumpStat("sent");
-  }
-
-  S.busy = false;
-  $("btnSend").disabled = false;
-  $("input").focus();
-}
-
-async function send(text) {
-  text = String(text || $("input").value).trim();
-  if (!text || S.busy) return;
-  $("input").value = "";
-  $("input").style.height = "auto";
-  addRow("me", text);
-  bumpStat("recv");
-  await reply(text);
-}
-
-/* ============ 初始化 ============ */
-function initChips() {
-  var list = ["在吗", "天素罗吃薯片了吗", "给你留了一包", "摸摸头", "薯片吃完了", "你是机器人吗", "演一段群聊"];
-  var box = $("chips");
-  list.forEach(function (t) {
-    var b = document.createElement("button");
-    b.className = "chip";
-    b.textContent = t;
-    b.onclick = function () {
-      if (t === "演一段群聊") return groupDemo();
-      send(t);
-    };
-    box.appendChild(b);
-  });
-}
-
-var GROUP = [
-  { who: "阿柴", text: "今天中午吃什么" },
-  { who: "Epsilon", text: "随便 别又是食堂" },
-  { who: "阿柴", text: "天素罗你说呢" },
-  { who: "Epsilon", text: "它肯定说薯片" },
-  { who: "阿柴", text: "哈哈哈还真是" }
-];
-
-async function groupDemo() {
-  if (S.busy) return;
-  S.busy = true;
-  $("btnSend").disabled = true;
-
-  for (var i = 0; i < GROUP.length; i++) {
-    addRow("bot", GROUP[i].text, { name: GROUP[i].who, ava: GROUP[i].who.slice(0, 1), other: true });
-    bumpStat("recv");
-    await sleep(700 + Math.random() * 500);
-    if (GROUP[i].text.indexOf("天素罗") >= 0) {
-      showTyping(true);
-      await sleep(900);
-      showTyping(false);
-      addRow("bot", "欧耶！薯片！");
-      bumpStat("sent");
-      nudgeMood(8);
+      body.innerHTML =
+        "<h4>" + stepLabel(4) + "可以开始了</h4>" +
+        '<ul class="hintline" style="padding-left:18px;line-height:1.9">' +
+        "<li>点工具栏的「启动」拉起机器人（先让 NapCat 登录）</li>" +
+        "<li>第一次登录会显示二维码，用手机 QQ 扫</li>" +
+        "<li>聊天记录和记忆都存在本机 data 目录，不会上传</li>" +
+        "<li>以后想再跑一遍：关于 → 设置向导</li>" +
+        "</ul>" +
+        '<button id="suGuide">看新手指引</button>';
+      prev.disabled = false;
+      next.textContent = "完成";
+      const guideBtn = body.querySelector("#suGuide");
+      if (guideBtn) guideBtn.onclick = () => { h.close(); openGuide(); };
     }
   }
 
-  await sleep(600);
-  sysLine("五条消息里它只接了一次——群里话多的时候，它是挑着回的");
-  S.busy = false;
-  $("btnSend").disabled = false;
-}
-
-function applyMode() {
-  var pill = $("modePill");
-  if (S.key) {
-    pill.textContent = "已接入 " + S.model;
-    pill.className = "pill on";
-    $("hint").textContent = "真聊模式：直接调 " + S.base.replace(/^https?:\/\//, "") + "，不走代理。";
-  } else {
-    pill.textContent = "演示模式";
-    pill.className = "pill";
-    $("hint").textContent = "演示模式：本地脚本回复，不联网也能用。";
+  async function saveStep() {
+    if (S.step === 2) {
+      const key = (body.querySelector("#suKey").value || "").trim();
+      const baseUrl = (body.querySelector("#suBase").value || "").trim();
+      const model = (body.querySelector("#suModel").value || "").trim();
+      if (!key && !(S.setup && S.setup.hasKey)) {
+        body.querySelector("#suKey").focus();
+        body.insertAdjacentHTML("beforeend", '<p class="hintline" style="color:#c0392b">先填一个 API Key 再继续</p>');
+        return false;
+      }
+      const payload = { provider: "openai", baseUrl: baseUrl, model: model };
+      if (key) payload.apiKey = key;
+      const r = await api("/api/config", { method: "POST", body: JSON.stringify(payload) });
+      if (!r || !r.ok) {
+        body.insertAdjacentHTML("beforeend", '<p class="hintline" style="color:#c0392b">保存失败：' + esc((r && r.error) || "未知错误") + "</p>");
+        return false;
+      }
+      S.setup = Object.assign({}, S.setup, { hasKey: true, baseUrl: baseUrl, model: model });
+    }
+    if (S.step === 3) {
+      const text = body.querySelector("#suPersona").value;
+      const name = (body.querySelector("#suName").value || "").trim();
+      const payload = { text: text };
+      if (name) payload.name = name;
+      const r = await api("/api/persona", { method: "POST", body: JSON.stringify(payload) });
+      if (!r || !r.ok) {
+        body.insertAdjacentHTML("beforeend", '<p class="hintline" style="color:#c0392b">保存失败：' + esc((r && r.error) || "未知错误") + "</p>");
+        return false;
+      }
+      if (name) {
+        S.name = name;
+        S.personaName = name;
+        S.setup = Object.assign({}, S.setup, { personaName: name });
+        const box = $("sendbox");
+        if (box) box.placeholder = "以" + name + "的身份发一句（Enter 发送）";
+      }
+    }
+    return true;
   }
-}
 
-function openSetting() {
-  $("fKey").value = S.key;
-  $("fBase").value = S.base;
-  $("fModel").value = S.model;
-  $("setMsg").textContent = "";
-  $("setMsg").className = "msg-line";
-  $("mask").classList.add("show");
-}
-
-function wire() {
-  $("btnSetting").onclick = openSetting;
-
-  $("btnSave").onclick = function () {
-    var key = $("fKey").value.trim();
-    var base = $("fBase").value.trim() || "https://api.deepseek.com";
-    if (key && !/^sk-/.test(key)) {
-      $("setMsg").textContent = "Key 一般以 sk- 开头，检查一下？";
-      $("setMsg").className = "msg-line err";
+  prev.onclick = () => {
+    if (S.step > 1) {
+      S.step -= 1;
+      render();
+    }
+  };
+  next.onclick = async () => {
+    if (S.step === 4) {
+      h.close();
       return;
     }
-    S.key = key;
-    S.base = base;
-    S.model = $("fModel").value;
-    save();
-    applyMode();
-    $("mask").classList.remove("show");
-    addRow("bot", key ? "唔 接上了 你说吧" : "唔 回到演示模式了");
+    if (!(await saveStep())) return;
+    S.step += 1;
+    render();
   };
+  render();
+}
 
-  $("btnClear").onclick = function () {
-    S.key = "";
-    save();
-    applyMode();
-    $("mask").classList.remove("show");
+// ---------------- 清理：显示 / 上下文 / 记忆 三层 ----------------
+async function openClear() {
+  const chat = S.active;
+  const isAll = chat === "all";
+  const mem = (await api("/api/memory?chat=" + encodeURIComponent(chat))) || {};
+  const facts = Array.isArray(mem.facts) ? mem.facts : [];
+  const st = (await api("/api/state")) || {};
+
+  const h = openModal({
+    title: "清理",
+    width: "540px",
+    bodyHtml:
+      '<div class="field"><label>范围</label><select id="clScope">' +
+      '<option value="chat"' + (isAll ? " disabled" : "") + ">当前会话" + (isAll ? "（先在左侧选一个）" : "（" + esc(chat) + "）") + "</option>" +
+      '<option value="all">全部会话</option>' +
+      "</select></div>" +
+      '<div class="field"><label>清掉什么（可多选，互不影响）</label></div>' +
+      '<label class="chk"><input type="checkbox" id="clDisplay" checked> 屏幕记录 <span class="muted">界面显示 + data/ui.log，重启不会复活</span></label>' +
+      '<label class="chk"><input type="checkbox" id="clContext"> 最近上下文 <span class="muted">它这轮对话还记着的最近消息，清完就当没聊过</span></label>' +
+      '<label class="chk"><input type="checkbox" id="clMemory"> 长期记忆 <span class="muted">摘要 ' + (mem.summary ? 1 : 0) + ' 条 / 事实 ' + facts.length + ' 条 / 心情值</span></label>' +
+      (st.bot ? "" : '<p class="hintline" style="color:#b45309">机器人没在运行：长期记忆仍可以直接清（写入 data/memory.json）；「最近上下文」本来就在它内存里，没运行等于已经没了。</p>') +
+      '<p class="hintline">只清屏不会改变它怎么说话；清上下文只影响这段对话；清记忆才会删掉摘要与事实卡，且不能撤销。</p>',
+    footHtml: '<button id="clCancel">取消</button><button id="clGo" class="danger">清理</button>',
+  });
+
+  const $b = (id) => h.body.querySelector("#" + id);
+  h.foot.querySelector("#clCancel").onclick = () => h.close();
+
+  h.foot.querySelector("#clGo").onclick = async () => {
+    const scope = $b("clScope").value;
+    const display = $b("clDisplay").checked;
+    const context = $b("clContext").checked;
+    const memory = $b("clMemory").checked;
+    if (!display && !context && !memory) {
+      $("hint").textContent = "至少勾一项再清理";
+      return;
+    }
+    if (memory || context) {
+      const what = [memory ? "长期记忆" : "", context ? "最近上下文" : ""].filter(Boolean).join("和");
+      if (!confirm("确定要清掉" + what + "吗？这一步不能撤销。")) return;
+    }
+
+    const r = await api("/api/clear", {
+      method: "POST",
+      body: JSON.stringify({ scope: scope, chat: chat, display: display, context: context, memory: memory }),
+    });
+    if (!r || !r.ok) {
+      $("hint").textContent = (r && r.error) || "清理失败";
+      return;
+    }
+
+    h.close();
+    list.innerHTML = "";
+    S.seq = 0;
+    updateEmpty();
+    applyFilter();
+    $("hint").textContent = "已清理";
+    await refresh();
+    await loadMessages(true);
+    if (memory || context) setTimeout(refreshMemoryPanel, 800);
   };
+}
 
-  $("mask").onclick = function (e) {
-    if (e.target === $("mask")) $("mask").classList.remove("show");
-  };
+// ---------------- 查看上次发给模型的内容 ----------------
+async function openPromptView() {
+  const d = await api("/api/lastprompt");
+  if (!d || d.empty) {
+    $("hint").textContent = "还没有记录：等它回一句话再看";
+    return;
+  }
 
-  $("btnSend").onclick = function () { send(); };
+  const head =
+    '<p class="hintline">触发：' + esc((d.from || "") + "：" + (d.text || "")).slice(0, 200) + "</p>" +
+    (d.topics && d.topics.length ? '<p class="hintline">当前话题：' + esc(d.topics.join("、")) + "</p>" : "") +
+    (d.openQuestion ? '<p class="hintline">未接问题：' + esc(d.openQuestion.from + "「" + d.openQuestion.text + "」") + "</p>" : "") +
+    (d.facts && d.facts.length
+      ? '<h4>这次挑中的记忆（' + d.facts.length + ' 条）</h4><div class="summary">' + d.facts.map(esc).join("<br>") + "</div>"
+      : '<h4>这次挑中的记忆</h4><div class="summary">（没有）</div>') +
+    (d.speaker ? '<h4>说话人画像</h4><pre class="promptbox">' + esc(d.speaker) + "</pre>" : "");
 
-  $("input").addEventListener("keydown", function (e) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      send();
+  const h = openModal({
+    title: "上次发给模型的内容",
+    width: "700px",
+    bodyHtml:
+      head +
+      '<h4>System</h4><pre class="promptbox">' + esc(d.system || "") + "</pre>" +
+      '<h4>User</h4><pre class="promptbox">' + esc(d.user || "") + "</pre>",
+    footHtml: '<button data-close2>知道了</button>',
+  });
+  h.foot.querySelector("[data-close2]").onclick = () => h.close();
+}
+
+// ---------------- 统计图 ----------------
+async function openStats() {
+  const h = openModal({ title: "命中率统计（最近 24 小时）", bodyHtml: '<div class="hintline">读取中…</div>' });
+  const data = await api("/api/stats?hours=24");
+  const hours = (data && data.hours) || [];
+  const totalRecv = hours.reduce((a, b) => a + b.received, 0);
+  const totalRepl = hours.reduce((a, b) => a + b.replied, 0);
+  const rate = totalRecv ? Math.round((totalRepl / totalRecv) * 100) : 0;
+
+  h.body.innerHTML =
+    '<div class="kv" style="margin-bottom:14px">' +
+    "<div>收到</div><div>" + totalRecv + " 条</div>" +
+    "<div>回复</div><div>" + totalRepl + " 条</div>" +
+    "<div>命中率</div><div><b style=\"color:var(--accent)\">" + rate + "%</b>（回复 / 收到）</div>" +
+    "</div>" +
+    '<svg class="chart" viewBox="0 0 680 200" preserveAspectRatio="none">' + chartSvg(hours) + "</svg>" +
+    '<div class="hintline" style="margin-top:6px">浅绿＝收到，深绿＝回复，横轴为整点</div>';
+}
+
+function chartSvg(hours) {
+  const W = 680, H = 200, padL = 30, padR = 8, padT = 12, padB = 24;
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+  const max = Math.max(1, ...hours.map((x) => x.received));
+  const n = hours.length || 1;
+  const slot = innerW / n;
+  const barW = Math.max(2, slot * 0.34);
+
+  let g = "";
+  // 横向参考线
+  for (let i = 0; i <= 4; i += 1) {
+    const y = padT + (innerH * i) / 4;
+    const val = Math.round(max - (max * i) / 4);
+    g += '<line class="axis" x1="' + padL + '" y1="' + y + '" x2="' + (W - padR) + '" y2="' + y + '"/>';
+    g += '<text x="2" y="' + (y + 3) + '">' + val + "</text>";
+  }
+
+  hours.forEach((h, i) => {
+    const x = padL + i * slot;
+    const hr = (h.received / max) * innerH;
+    const hp = (h.replied / max) * innerH;
+    if (h.received) {
+      g += '<rect class="bar-recv" x="' + (x + slot * 0.16) + '" y="' + (padT + innerH - hr) + '" width="' + barW + '" height="' + hr + '" rx="2"/>';
+    }
+    if (h.replied) {
+      g += '<rect class="bar-repl" x="' + (x + slot * 0.16 + barW + 1) + '" y="' + (padT + innerH - hp) + '" width="' + barW + '" height="' + hp + '" rx="2"/>';
+    }
+    if (i % 4 === 0) {
+      g += '<text x="' + (x + slot * 0.16) + '" y="' + (H - 6) + '">' + h.label + "</text>";
     }
   });
 
-  $("input").addEventListener("input", function () {
-    this.style.height = "auto";
-    this.style.height = Math.min(110, this.scrollHeight) + "px";
+  return g;
+}
+
+// ---------------- 设计：人格 / 换肤 ----------------
+const THEMES = {
+  light: {
+    label: "浅色",
+    vars: { "--bg": "#f6f7f9", "--panel": "#ffffff", "--panel-2": "#f1f3f6", "--line": "#e3e6ec", "--text": "#1f2430", "--muted": "#6f7787", "--accent": "#16a34a" },
+  },
+  dark: {
+    label: "深色",
+    vars: { "--bg": "#12141a", "--panel": "#1a1d25", "--panel-2": "#232733", "--line": "#2e3442", "--text": "#e7ebf3", "--muted": "#8b93a7", "--accent": "#4ade80" },
+    extra:
+      "body{background:#12141a}" +
+      ".stream{background:#1a1d25}" +
+      ".line .t{color:#5b6478}.line .arrow{color:#3f4a5e}" +
+      ".line.in .who{color:#9fb0c9}.line.in .txt{color:#d7dce8}" +
+      ".line.out .txt{color:#eafff3}.line.sys,.line.sys .who{color:#5b6478}" +
+      ".chat .name{color:#9aa3b5}.chat .sub{color:#667086}" +
+      ".chat:hover,.chat.active{background:#232733}" +
+      ".avatar{background:#232733;color:#9fb0c9}" +
+      "header,footer,.composer{background:rgba(26,29,37,.9)}" +
+      "aside{background:#171a21}" +
+      "button,input,select,textarea{background:#232733;color:#e7ebf3;border-color:#2e3442}" +
+      ".dialog,.factlist li{background:#1a1d25}",
+  },
+  warm: {
+    label: "暖黄",
+    vars: { "--bg": "#faf6ee", "--panel": "#fffdf8", "--panel-2": "#f5efe3", "--line": "#e8dfcd", "--text": "#2c2620", "--muted": "#7d7263", "--accent": "#b45309" },
+  },
+  mint: {
+    label: "薄荷",
+    vars: { "--bg": "#f2f8f5", "--panel": "#ffffff", "--panel-2": "#e9f3ee", "--line": "#d6e7de", "--text": "#1e2b26", "--muted": "#6b8177", "--accent": "#0f766e" },
+  },
+};
+
+function applyTheme(name, custom) {
+  const styleEl = $("themeVars");
+  const theme = THEMES[name];
+  const vars = custom || (theme && theme.vars) || THEMES.light.vars;
+  styleEl.textContent =
+    ":root{" + Object.entries(vars).map(([k, v]) => k + ":" + v).join(";") + "}" +
+    (theme && theme.extra ? theme.extra : "");
+  localStorage.setItem("qqbot-theme", JSON.stringify({ name: name, custom: custom || null }));
+}
+
+function loadTheme() {
+  let saved = null;
+  try {
+    saved = JSON.parse(localStorage.getItem("qqbot-theme") || "null");
+  } catch {}
+  if (saved && saved.custom) applyTheme("custom", saved.custom);
+  else applyTheme((saved && saved.name) || "light");
+}
+
+function openDesign(tab) {
+  const h = openModal({
+    title: "设计",
+    bodyHtml: '<div class="tabs" id="dtabs"></div><div id="dbody"></div>',
+    footHtml: '<button class="primary" id="designFootSave">保存</button>',
+  });
+
+  const tabs = [
+    ["persona", "人格与初始记忆"],
+    ["theme", "换肤"],
+  ];
+  const tabsEl = h.body.querySelector("#dtabs");
+  const bodyEl = h.body.querySelector("#dbody");
+
+  function paint(active) {
+    tabsEl.innerHTML = tabs
+      .map(([k, label]) => '<button data-tab="' + k + '" class="' + (k === active ? "on" : "") + '">' + label + "</button>")
+      .join("");
+    tabsEl.querySelectorAll("button").forEach((b) => {
+      b.onclick = () => paint(b.dataset.tab);
+    });
+    if (active === "persona") paintPersona(bodyEl);
+    else paintTheme(bodyEl);
+
+    const footBtn = h.foot && h.foot.querySelector("#designFootSave");
+    if (footBtn) footBtn.style.display = active === "persona" ? "" : "none";
+  }
+
+  paint(tab || "persona");
+}
+
+async function paintPersona(el) {
+  el.innerHTML = '<div class="hintline">读取中…</div>';
+  const [p, d, c] = await Promise.all([api("/api/persona"), api("/api/design"), api("/api/config")]);
+  const design = (d && !d.error) ? d : {};
+  const style = design.style || {};
+  const name = (p && p.name) || design.name || "";
+  const cfg = c || {};
+  const tabooAll = ["政治", "色情", "暴力", "拉群引流"];
+  const taboo = new Set((style.taboo || []).concat(design.taboo || []));
+  const examples = (design.examples || []).slice(0, 3);
+  while (examples.length < 1) examples.push({ u: "", b: "" });
+
+  const opts = (map, cur) =>
+    Object.entries(map).map(([k, label]) => '<option value="' + k + '"' + (k === cur ? " selected" : "") + ">" + label + "</option>").join("");
+
+  const exRow = (e, i) =>
+    '<div class="exrow"><input data-ex-u="' + i + '" placeholder="群友说…" value="' + esc(e.u || "") + '">' +
+    '<input data-ex-b="' + i + '" placeholder="它回…" value="' + esc(e.b || "") + '"></div>';
+
+  el.innerHTML =
+    "<h4>基本信息</h4>" +
+    '<div class="grid2"><div class="field"><label>名字</label><input id="dName" maxlength="20" value="' + esc(name) + '"></div>' +
+    '<div class="field"><label>一句话定位（可选）</label><input id="dTag" maxlength="30" placeholder="群里嘴硬心软的小家伙" value="' + esc(design.tagline || "") + '"></div></div>' +
+
+    "<h4>说话方式</h4>" +
+    '<div class="grid2">' +
+    '<div class="field"><label>句子长度</label><select id="dLen">' + opts({ short: "很短（一句 15 字内）", normal: "正常（1~2 句）", long: "能展开（80 字内）" }, style.length || "normal") + "</select></div>" +
+    '<div class="field"><label>语气</label><select id="dTone">' + opts({ gentle: "温和", normal: "正常", edgy: "有点毒舌" }, style.tone || "normal") + "</select></div>" +
+    "</div>" +
+    '<div class="field"><label>emoji</label><div class="seg" id="dEmoji">' +
+    ["不用", "偶尔", "经常"].map((t, i) => '<button data-v="' + i + '" class="' + ((Number(style.emoji) === i) ? "on" : "") + '">' + t + "</button>").join("") +
+    "</div></div>" +
+    '<div class="field"><label>口头禅（逗号分隔，可留空）</label><input id="dCatch" placeholder="啊这, 确实" value="' + esc((style.catchphrases || []).join(", ")) + '"></div>' +
+
+    "<h4>不要聊</h4>" +
+    '<div class="checks" id="dTaboo">' +
+    tabooAll.map((t) => '<label><input type="checkbox" value="' + t + '"' + (taboo.has(t) ? " checked" : "") + ">" + t + "</label>").join("") +
+    "</div>" +
+
+    "<h4>示例对话（可选，最多 3 组）</h4>" +
+    '<div id="dExamples">' + examples.map(exRow).join("") + "</div>" +
+    '<button id="dAddEx" style="margin-top:4px">再加一组</button>' +
+
+    "<h4>API</h4>" +
+    '<div class="kv">' +
+    '<div>提供商</div><div><input id="cProvider" value="' + esc(cfg.provider || "") + '"></div>' +
+    '<div>Base URL</div><div><input id="cBase" value="' + esc(cfg.baseUrl || "") + '"></div>' +
+    '<div>模型</div><div><input id="cModel" value="' + esc(cfg.model || "") + '"></div>' +
+    '<div>API Key</div><div><input id="cKey" type="password" placeholder="' + (cfg.hasKey ? "已配置，留空不改" : "还没配置") + '"></div>' +
+    "</div>" +
+
+    '<div style="margin-top:14px;display:flex;gap:8px;align-items:center">' +
+    '<button class="primary" id="designSave">保存</button>' +
+    '<span class="hintline" id="designMsg"></span></div>' +
+
+    '<details style="margin-top:16px"><summary>高级：人设全文（persona.md，可选）</summary>' +
+    '<div class="field"><textarea id="personaText" spellcheck="false"></textarea></div>' +
+    '<div style="display:flex;gap:8px;align-items:center"><button id="personaSave">保存全文</button>' +
+    '<button id="personaReset">恢复默认模板</button>' +
+    '<span class="hintline" id="personaMsg"></span></div></details>';
+
+  el.querySelector("#personaText").value = (p && p.text) || "";
+
+  el.querySelectorAll("#dEmoji button").forEach((b) => {
+    b.onclick = () => {
+      el.querySelectorAll("#dEmoji button").forEach((x) => x.classList.remove("on"));
+      b.classList.add("on");
+    };
+  });
+
+  el.querySelector("#dAddEx").onclick = () => {
+    const box = el.querySelector("#dExamples");
+    if (box.children.length >= 3) {
+      el.querySelector("#designMsg").textContent = "最多 3 组";
+      return;
+    }
+    box.insertAdjacentHTML("beforeend", exRow({ u: "", b: "" }, box.children.length));
+  };
+
+  el.querySelector("#designSave").onclick = async () => {
+    const msg = el.querySelector("#designMsg");
+    msg.textContent = "保存中…";
+
+    const emojiBtn = el.querySelector("#dEmoji button.on");
+    const catches = el.querySelector("#dCatch").value.split(/[,，、]/).map((s) => s.trim()).filter(Boolean).slice(0, 5);
+    const tabooList = [...el.querySelectorAll("#dTaboo input:checked")].map((x) => x.value);
+    const exs = [...el.querySelectorAll("#dExamples .exrow")].map((row) => ({
+      u: row.querySelector("[data-ex-u]").value.trim(),
+      b: row.querySelector("[data-ex-b]").value.trim(),
+    })).filter((e) => e.u || e.b);
+
+    const payload = {
+      name: el.querySelector("#dName").value.trim(),
+      tagline: el.querySelector("#dTag").value.trim(),
+      style: {
+        length: el.querySelector("#dLen").value,
+        tone: el.querySelector("#dTone").value,
+        emoji: emojiBtn ? Number(emojiBtn.dataset.v) : 1,
+        catchphrases: catches,
+        taboo: tabooList,
+      },
+      examples: exs,
+    };
+
+    const r = await api("/api/design", { method: "POST", body: JSON.stringify(payload) });
+    if (!r || !r.ok) {
+      msg.textContent = "保存失败：" + ((r && r.error) || "未知错误");
+      return;
+    }
+
+    const cfgBody = {
+      provider: el.querySelector("#cProvider").value.trim(),
+      baseUrl: el.querySelector("#cBase").value.trim(),
+      model: el.querySelector("#cModel").value.trim(),
+    };
+    const key = el.querySelector("#cKey").value.trim();
+    if (key) cfgBody.apiKey = key;
+    const rc = await api("/api/config", { method: "POST", body: JSON.stringify(cfgBody) });
+
+    if (payload.name) {
+      S.personaName = payload.name;
+      const box = $("sendbox");
+      if (box) box.placeholder = "以" + payload.name + "的身份发一句（Enter 发送）";
+    }
+    msg.textContent = rc && rc.ok ? "已保存，下一句回复生效" : "人设已保存；API 配置保存失败";
+  };
+
+  el.querySelector("#personaSave").onclick = async () => {
+    const t = el.querySelector("#personaText").value;
+    const r = await api("/api/persona", { method: "POST", body: JSON.stringify({ text: t }) });
+    el.querySelector("#personaMsg").textContent = r && r.ok ? "已保存" : "保存失败";
+  };
+
+  el.querySelector("#personaReset").onclick = () => {
+    el.querySelector("#personaText").value =
+      "# 你的名字\n\n你是群里的一员，说话简短、自然、像真人。\n\n## 性格\n\n- \n\n## 说话习惯\n\n- 每次只说一两句\n- 不用书面语\n\n## 示例\n\n群友：在吗\n你：在\n";
+  };
+
+  // 底部固定的保存按钮，转去点表单里的同一个处理函数
+  const footSave = $("designFootSave");
+  if (footSave) footSave.onclick = () => el.querySelector("#designSave").click();
+}
+
+function paintTheme(el) {
+  let saved = null;
+  try {
+    saved = JSON.parse(localStorage.getItem("qqbot-theme") || "null");
+  } catch {}
+  const current = (saved && saved.name) || "light";
+  const custom = saved && saved.custom;
+
+  el.innerHTML =
+    '<div class="hintline" style="margin-bottom:8px">选一个配色，立即生效</div>' +
+    '<div class="swatches">' +
+    Object.entries(THEMES)
+      .map(
+        ([k, t]) =>
+          '<div class="swatch ' + (k === current && !custom ? "on" : "") + '" data-theme="' + k + '" ' +
+          'style="background:' + t.vars["--bg"] + ";color:" + t.vars["--text"] + '">' + t.label + "</div>"
+      )
+      .join("") +
+    "</div>" +
+    '<h4 style="margin:18px 0 8px;font-size:12px;color:var(--muted)">自定义</h4>' +
+    '<div class="kv" id="customVars"></div>' +
+    '<div style="margin-top:12px"><button id="themeApply">应用自定义配色</button> ' +
+    '<button id="themeReset">恢复默认</button></div>';
+
+  const vars = custom || THEMES[current].vars;
+  const labels = {
+    "--bg": "背景",
+    "--panel": "面板",
+    "--panel-2": "次级面板",
+    "--line": "分隔线",
+    "--text": "文字",
+    "--muted": "次要文字",
+    "--accent": "强调色",
+  };
+  const box = el.querySelector("#customVars");
+  box.innerHTML = Object.keys(labels)
+    .map(
+      (k) =>
+        "<div>" + labels[k] + '</div><div><input type="color" data-var="' + k + '" value="' + (vars[k] || "#ffffff") + '"></div>'
+    )
+    .join("");
+
+  el.querySelectorAll("[data-theme]").forEach((sw) => {
+    sw.onclick = () => {
+      applyTheme(sw.dataset.theme);
+      paintTheme(el);
+    };
+  });
+
+  el.querySelector("#themeApply").onclick = () => {
+    const out = {};
+    el.querySelectorAll("[data-var]").forEach((i) => {
+      out[i.dataset.var] = i.value;
+    });
+    applyTheme("custom", out);
+    paintTheme(el);
+  };
+
+  el.querySelector("#themeReset").onclick = () => {
+    localStorage.removeItem("qqbot-theme");
+    applyTheme("light");
+    paintTheme(el);
+  };
+}
+
+// ---------------- 记忆编辑 ----------------
+function memoryAction(cmd, extra) {
+  if (S.active === "all") {
+    $("hint").textContent = "先在左侧选一个会话，再编辑它的记忆";
+    return Promise.resolve(null);
+  }
+  return api("/api/control", {
+    method: "POST",
+    body: JSON.stringify(Object.assign({ cmd: cmd, chat: S.active }, extra || {})),
   });
 }
 
-function boot() {
-  log = $("log");
-  scroller = log;
-  load();
-  ensureHours();
-  forgetOld();
-
-  var d = document.createElement("div");
-  d.className = "day";
-  d.textContent = new Date().getMonth() + 1 + " 月 " + new Date().getDate() + " 日";
-  log.appendChild(d);
-
-  initChips();
-  wire();
-  applyMode();
-  renderFacts();
-  renderStats();
-  setMood(S.mood);
-
-  addRow("bot", "唔 有人吗");
-  setTimeout(function () {
-    sysLine("不填 Key 是演示模式，脚本回复；填了就是你自己的模型");
-  }, 700);
+async function refreshMemoryPanel() {
+  const m = await api("/api/memory?chat=" + encodeURIComponent(S.active));
+  renderMemory(m);
 }
 
-boot();
+
+loadTheme();
+loadPersonaName();
+refresh().then(() => loadMessages(true)).then(() => { tick(); maybeSetup(); });
 </script>
 </body>
 </html>
