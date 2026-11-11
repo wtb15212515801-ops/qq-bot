@@ -48,11 +48,11 @@ node tools/prompt.js
 
 ## 网页版（不用装任何东西）
 
-`docs/index.html` 是同一个「脑子」，换了个壳：单文件、纯前端、没有任何依赖。
+`index.html` 是同一个「脑子」，换了个壳：单文件、纯前端、没有任何依赖。
 
 ```
 在线：  https://wtb15212515801-ops.github.io/qq-bot/
-离线：  双击 docs/index.html（file:// 也能用，不用起服务器）
+离线：  双击 index.html（file:// 也能用，不用起服务器）
 ```
 
 **两种模式**
@@ -216,8 +216,7 @@ qq-bot/
 ├─ main.js                入口（单实例保护 + 全局异常兜底）
 ├─ config.json            配置（由 config.example.json 复制）
 ├─ persona.md             人设（由 persona.example.md 复制）
-├─ docs/
-│  └─ index.html          网页版（单文件，可直接部署 GitHub Pages）
+├─ index.html            网页版（单文件，直接由 GitHub Pages 发布）
 ├─ src/
 │  ├─ onebot.js           OneBot 11 WebSocket 客户端
 │  ├─ pipeline.js         主流程编排
