@@ -2160,8 +2160,8 @@
       bot: !!S.bot,
       hint: S.bot
         ? (S.cfg.apiKey
-            ? "网页版 · 已接入 " + S.cfg.model + "（不连 QQ，不用扫码）"
-            : "网页版 · 本地规则回复（不连 QQ，不用扫码）")
+            ? "网页版 · 已接入 " + S.cfg.model + "（不连 QQ）"
+            : "网页版 · 直接说话就行（不连 QQ，也不用登录）")
         : "已停止",
       qr: "",
       level: S.level,
@@ -2422,7 +2422,47 @@
     return true;
   }
 
+  // 网页版没有 QQ 登录：把桌面版的扫码 / 启动 / 账号状态全部拿掉，只留「能聊天」
+  function adaptForWeb() {
+    var css = document.createElement("style");
+    css.textContent = [
+      "#p-napcat,#p-account,#p-bot,#btn-start,#btn-stop,#qrbox{display:none !important}",
+      "#webbar .pill{margin-left:0}",
+      "@media (max-width:820px){.side{width:148px!important}}"
+    ].join("\n");
+    document.head.appendChild(css);
+
+    var pills = document.querySelector("header .pills");
+    if (pills && !document.getElementById("webbar")) {
+      var bar = document.createElement("div");
+      bar.className = "pills";
+      bar.id = "webbar";
+      bar.innerHTML = '<div class="pill ok" id="w-state"><i></i><span>本地演示</span></div>';
+      pills.parentNode.insertBefore(bar, pills.nextSibling);
+    }
+
+    // 状态随时更新：填了 Key 就显示模型名
+    setInterval(function () {
+      var el = document.querySelector("#w-state span");
+      if (!el) return;
+      var want = S.cfg.apiKey ? "已接入 " + (S.cfg.model || "模型") : "本地演示";
+      if (el.textContent !== want) el.textContent = want;
+      var pill = document.getElementById("w-state");
+      if (pill && S.cfg.apiKey && pill.className.indexOf("ok") < 0) pill.className = "pill ok";
+    }, 1000);
+
+    // 清空后桌面版会显示「扫码登录」那套引导，网页版换成一句话
+    setInterval(function () {
+      var e = document.getElementById("empty");
+      if (e && e.offsetParent && (e.innerText || "").indexOf("NapCat") >= 0) {
+        e.innerHTML = '<div style="padding:26px 10px;color:#8a93a2;text-align:center;line-height:1.9">' +
+          '这里还没有消息<br>在下面输入框说句话试试</div>';
+      }
+    }, 1200);
+  }
+
   function boot() {
+    adaptForWeb();
     if (!fixPlaceholder()) {
       var tries = 0;
       var t = setInterval(function () {
