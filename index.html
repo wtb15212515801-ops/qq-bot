@@ -2246,11 +2246,11 @@
           provider: S.cfg.provider,
           baseUrl: S.cfg.baseUrl,
           model: S.cfg.model,
-          node: false,
-          nodeVersion: "",
-          napcat: false,
+          node: true,
+          nodeVersion: "浏览器",
+          napcat: true,
           napcatDir: "web",
-          webview: false,
+          webview: true,
           personaName: "天素罗",
           version: "网页版"
         });
@@ -2427,6 +2427,7 @@
     var css = document.createElement("style");
     css.textContent = [
       "#p-napcat,#p-account,#p-bot,#btn-start,#btn-stop,#qrbox{display:none !important}",
+      "#aboutSetup,#aboutGuide,#emptyGuide{display:none !important}",
       "#webbar .pill{margin-left:0}",
       "@media (max-width:820px){.side{width:148px!important}}"
     ].join("\n");
@@ -2451,6 +2452,34 @@
       if (pill && S.cfg.apiKey && pill.className.indexOf("ok") < 0) pill.className = "pill ok";
     }, 1000);
 
+    // 「关于」里那几句是桌面版写的，网页版换成对的说法
+    setInterval(function () {
+      var mods = document.querySelectorAll(".modal, .dialog");
+      for (var i = 0; i < mods.length; i += 1) {
+        var m = mods[i];
+        if (m.getAttribute("data-webpolish") === "1") continue;
+        if ((m.innerText || "").indexOf("关于 QQ BOT") < 0) continue;
+        m.setAttribute("data-webpolish", "1");
+
+        var cells = m.querySelectorAll("div");
+        for (var j = 0; j < cells.length; j += 1) {
+          var label = (cells[j].textContent || "").trim();
+          var next = cells[j].nextElementSibling;
+          if (!next) continue;
+          if (label === "运行方式") {
+            next.textContent = "网页版：纯前端，数据只存在这个浏览器里";
+          } else if (label === "版本") {
+            next.textContent = "网页版（和桌面版同一个界面）";
+          }
+        }
+
+        var lis = m.querySelectorAll("li");
+        for (var k = lis.length - 1; k >= 0; k -= 1) {
+          if ((lis[k].textContent || "").indexOf("小号") >= 0) lis[k].parentNode.removeChild(lis[k]);
+        }
+      }
+    }, 900);
+
     // 清空后桌面版会显示「扫码登录」那套引导，网页版换成一句话
     setInterval(function () {
       var e = document.getElementById("empty");
@@ -2461,8 +2490,99 @@
     }, 1200);
   }
 
+  // 网页版自己的引导：不检查环境，直接告诉人「能聊」和「怎么接真模型」
+  function webWelcome() {
+    try {
+      if (localStorage.getItem("qqbot.web.seen") === "1") return;
+    } catch (e) {
+      return;
+    }
+    if (document.getElementById("w-welcome")) return;
+
+    var mask = document.createElement("div");
+    mask.id = "w-welcome";
+    mask.style.cssText =
+      "position:fixed;inset:0;background:rgba(15,20,28,.45);display:flex;" +
+      "align-items:center;justify-content:center;z-index:9999;padding:18px";
+
+    var card = document.createElement("div");
+    card.style.cssText =
+      "background:#fff;border-radius:14px;width:min(430px,92vw);padding:22px;" +
+      "box-shadow:0 24px 70px rgba(0,0,0,.22);font-family:inherit";
+
+    var title = document.createElement("div");
+    title.textContent = "欢迎";
+    title.style.cssText = "font-size:17px;font-weight:700;color:#1c2430;margin-bottom:10px";
+
+    var body = document.createElement("div");
+    body.innerHTML =
+      '这是天素罗的<b>网页版</b>，不用装 Node、WebView2、NapCat，打开就能聊。<br><br>' +
+      '默认用本地规则回复；想换成真模型，填自己的 DeepSeek Key 就行，浏览器直连，不走代理。<br><br>' +
+      '<span style="color:#9aa3b0">Key 只存在你自己的浏览器里。</span>';
+    body.style.cssText = "font-size:13px;color:#5b6472;line-height:1.95;margin-bottom:18px";
+
+    var row = document.createElement("div");
+    row.style.cssText = "display:flex;gap:9px";
+
+    var go = document.createElement("button");
+    go.textContent = "直接开始";
+    go.style.cssText =
+      "flex:1;padding:11px;border-radius:9px;border:0;background:#1c2430;color:#fff;" +
+      "font-size:13.5px;cursor:pointer";
+
+    var keyBtn = document.createElement("button");
+    keyBtn.textContent = "填 Key";
+    keyBtn.style.cssText =
+      "flex:1;padding:11px;border-radius:9px;border:1px solid #e3e6ec;background:#fff;color:#333;" +
+      "font-size:13.5px;cursor:pointer";
+
+    function done() {
+      try { localStorage.setItem("qqbot.web.seen", "1"); } catch (e) { /* 无痕模式 */ }
+      if (mask.parentNode) mask.parentNode.removeChild(mask);
+    }
+
+    go.onclick = done;
+    keyBtn.onclick = function () {
+      body.innerHTML = "";
+      var input = document.createElement("input");
+      input.type = "password";
+      input.placeholder = "sk-...";
+      input.style.cssText =
+        "width:100%;padding:11px 12px;border:1px solid #e3e6ec;border-radius:9px;" +
+        "font-size:13.5px;outline:none;box-sizing:border-box";
+      var tip = document.createElement("div");
+      tip.textContent = "填完点「保存」，下一句就走真模型。不填也可以，关掉就是演示模式。";
+      tip.style.cssText = "font-size:12px;color:#9aa3b0;margin-top:9px;line-height:1.7";
+      body.appendChild(input);
+      body.appendChild(tip);
+      input.focus();
+
+      keyBtn.textContent = "保存";
+      keyBtn.style.background = "#1c2430";
+      keyBtn.style.color = "#fff";
+      keyBtn.onclick = function () {
+        var v = input.value.trim();
+        if (v) {
+          S.cfg.apiKey = v;
+          save();
+        }
+        done();
+      };
+      go.onclick = done;
+    };
+
+    row.appendChild(go);
+    row.appendChild(keyBtn);
+    card.appendChild(title);
+    card.appendChild(body);
+    card.appendChild(row);
+    mask.appendChild(card);
+    document.body.appendChild(mask);
+  }
+
   function boot() {
     adaptForWeb();
+    webWelcome();
     if (!fixPlaceholder()) {
       var tries = 0;
       var t = setInterval(function () {
