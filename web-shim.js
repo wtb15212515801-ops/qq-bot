@@ -17,10 +17,14 @@
   var DAY = 86400000;
   var MAX_LINES = 500;
 
-  var CHATS = [
-    { key: "g1", name: "群 · 天素罗的小窝" },
-    { key: "p1", name: "私聊 · 你" }
+  var DEFAULT_CHATS = [
+    { key: "g1", name: "群聊" },
+    { key: "p1", name: "私聊" }
   ];
+
+  function chatList() {
+    return (S && S.chats && S.chats.length) ? S.chats : DEFAULT_CHATS;
+  }
 
   var DEFAULT_PERSONA = [
     "你叫「天素罗」，一个软乎乎的小家伙。你不懂太复杂的事，高兴就是高兴，难过就是难过，全写在脸上。",
@@ -68,7 +72,8 @@
       cfg: { provider: "openai", baseUrl: "https://api.deepseek.com", model: "deepseek-chat", apiKey: "" },
       design: {},
       mem: {},
-      stats: {}
+      stats: {},
+      chats: []
     };
   }
 
@@ -283,15 +288,17 @@
   /* ---------------- 路由 ---------------- */
   function state() {
     var chats = [{ key: "all", name: "全部", count: S.lines.length, unread: 0 }];
-    CHATS.forEach(function (c) {
+    chatList().forEach(function (c) {
       chats.push({ key: c.key, name: c.name, count: countOf(c.key), unread: 0 });
     });
     return {
-      napcat: true,
-      webui: true,
+      napcat: false,
+      webui: false,
       bot: !!S.bot,
       hint: S.bot
-        ? (S.cfg.apiKey ? "网页版 · 已接入 " + S.cfg.model : "网页版 · 没填 Key，用本地规则回")
+        ? (S.cfg.apiKey
+            ? "网页版 · 已接入 " + S.cfg.model + "（不连 QQ，不用扫码）"
+            : "网页版 · 本地规则回复（不连 QQ，不用扫码）")
         : "已停止",
       qr: "",
       level: S.level,
@@ -423,7 +430,8 @@
           case "send":
             if (!S.bot) return json({ ok: false, error: "机器人没在运行" });
             if (!body.text || !String(body.text).trim()) return json({ ok: false, error: "空消息" });
-            handleSend(chat === "all" ? "p1" : chat, String(body.text).trim());
+            var list = chatList();
+            handleSend(chat === "all" ? (list[0] ? list[0].key : "p1") : chat, String(body.text).trim());
             return json({ ok: true });
           default:
             return json({ ok: false, error: "unknown action" });
@@ -474,6 +482,21 @@
   /* ---------------- 装上 ---------------- */
   function seed() {
     if (S.lines.length) return;
+
+    var data = window.__QQBOT_SEED__;
+    if (data && data.lines && data.lines.length) {
+      S.chats = (data.chats || []).slice();
+      data.lines.forEach(function (l) {
+        S.seq += 1;
+        S.lines.push({ seq: S.seq, t: l.t, key: l.key, kind: l.kind || "in", who: l.who || "", text: l.text });
+      });
+      if (data.mem) {
+        Object.keys(data.mem).forEach(function (k) { S.mem[k] = data.mem[k]; });
+      }
+      save();
+      return;
+    }
+
     var now = new Date();
     var base = now.getTime() - 6 * 60000;
     var demo = [
