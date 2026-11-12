@@ -642,6 +642,21 @@ partial class MainForm
 
 
 
+    /// <summary>没有统计数据时，也返回 n 个结构完整的空桶，避免前端图表一片空白。</summary>
+    static string EmptyStats(int hours)
+    {
+        var sb = new StringBuilder("{\"hours\":[");
+        for (int i = hours - 1; i >= 0; i -= 1)
+        {
+            DateTime d = DateTime.Now.AddHours(-i);
+            if (i < hours - 1) sb.Append(',');
+            sb.Append("{\"label\":\"").Append(d.ToString("HH")).Append(":00\"")
+              .Append(",\"received\":0,\"replied\":0,\"dropped\":0}");
+        }
+        sb.Append("]}");
+        return sb.ToString();
+    }
+
     string StatsJson(string path)
     {
         int hours = 24;
@@ -651,7 +666,7 @@ partial class MainForm
             string v = path.Substring(hi + 6);
             int amp = v.IndexOf('&');
             if (amp >= 0) v = v.Substring(0, amp);
-            int.TryParse(v, out hours);
+            if (!int.TryParse(v, out hours)) hours = 24;
         }
         if (hours < 1) hours = 1;
         if (hours > 72) hours = 72;
@@ -659,7 +674,8 @@ partial class MainForm
         try
         {
             string file = Path.Combine(AppDir(), "data", "stats.json");
-            if (!File.Exists(file)) return "{\"hours\":[]}";
+            // 没有统计文件也要给出完整的空桶，否则前端图表是一片空白
+            if (!File.Exists(file)) return EmptyStats(hours);
 
             var ser = new System.Web.Script.Serialization.JavaScriptSerializer();
             var root = ser.Deserialize<Dictionary<string, object>>(File.ReadAllText(file, Encoding.UTF8));

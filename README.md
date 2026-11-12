@@ -61,6 +61,7 @@ node tools/prompt.js
 界面：  ui/index.html   （和桌面版同一个文件）
 适配：  web-shim.js     （把 /api/* 换成浏览器实现）
 构建：  node tools/build-web.mjs   → 合并成单文件 index.html
+数据：  node tools/make-seed.mjs  → 从 data/ 抽真实会话生成 web-seed.json
 ```
 
 **能做什么**：聊天、记忆面板（置顶/删除/心情）、命中率统计、设计面板里改人设和 API Key。

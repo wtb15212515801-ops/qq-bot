@@ -1704,22 +1704,26 @@
     {
      "text": "正月初十爱逗天素罗，追问它是不是人、是不是蛆",
      "at": 1792935052116,
-     "pinned": false
+     "pinned": false,
+     "frozen": true
     },
     {
      "text": "Epsilon 出题考天素罗，问 1+1、明日方舟等",
      "at": 1792935052116,
-     "pinned": false
+     "pinned": false,
+     "frozen": true
     },
     {
      "text": "Epsilon 说想给天素罗加点智商",
      "at": 1792935052116,
-     "pinned": false
+     "pinned": false,
+     "frozen": true
     },
     {
      "text": "Epsilon 问天素罗会不会解三行四列行列式",
      "at": 1792935052117,
-     "pinned": false
+     "pinned": false,
+     "frozen": true
     }
    ],
    "events": [],
@@ -1732,32 +1736,38 @@
     {
      "text": "Epsilon 常向群里连续提问，话题跳跃",
      "at": 1792938157517,
-     "pinned": false
+     "pinned": false,
+     "frozen": true
     },
     {
      "text": "Epsilon 会发黄色卡通表情包互动",
      "at": 1792938157517,
-     "pinned": false
+     "pinned": false,
+     "frozen": true
     },
     {
      "text": "天素罗对表情包会做拟人化解读",
      "at": 1792938157517,
-     "pinned": false
+     "pinned": false,
+     "frozen": true
     },
     {
      "text": "Epsilon 提到「ccb」，天素罗表示不懂",
      "at": 1792938157517,
-     "pinned": false
+     "pinned": false,
+     "frozen": true
     },
     {
      "text": "Epsilon 在群里连续提问，话题从秋天跳到苏轼、黄山学院",
      "at": 1792931223420,
-     "pinned": false
+     "pinned": false,
+     "frozen": true
     },
     {
      "text": "Epsilon 问苏轼是否葬在常州天宁",
      "at": 1792931223420,
-     "pinned": false
+     "pinned": false,
+     "frozen": true
     }
    ],
    "events": [],
@@ -1770,62 +1780,74 @@
     {
      "text": "严先生自嘲需要电子扫盲",
      "at": 1792940766699,
-     "pinned": false
+     "pinned": false,
+     "frozen": true
     },
     {
      "text": "伤逝说自己又加了回答频度",
      "at": 1792940766699,
-     "pinned": false
+     "pinned": false,
+     "frozen": true
     },
     {
      "text": "溜肩在追问老师通知并吐槽水课",
      "at": 1792940766699,
-     "pinned": false
+     "pinned": false,
+     "frozen": true
     },
     {
      "text": "曼你个der啊熬夜赶创新创业作业",
      "at": 1792940766699,
-     "pinned": false
+     "pinned": false,
+     "frozen": true
     },
     {
      "text": "曼你个der啊在熬夜赶创新创业作业，脑子转不动",
      "at": 1792940166283,
-     "pinned": false
+     "pinned": false,
+     "frozen": true
     },
     {
      "text": "溜肩认为创新创业是臭水课，想直接睡觉",
      "at": 1792940166283,
-     "pinned": false
+     "pinned": false,
+     "frozen": true
     },
     {
      "text": "伤逝说他们老师没发作业通知",
      "at": 1792940166283,
-     "pinned": false
+     "pinned": false,
+     "frozen": true
     },
     {
      "text": "严先生校园网卡，校园软件要求更新支付宝才能用热水",
      "at": 1792940166283,
-     "pinned": false
+     "pinned": false,
+     "frozen": true
     },
     {
      "text": "溜肩大学四年很少用校园网，只在官网答题时用",
      "at": 1792940166283,
-     "pinned": false
+     "pinned": false,
+     "frozen": true
     },
     {
      "text": "伤逝问黄山学院是什么档次院校",
      "at": 1792940166283,
-     "pinned": false
+     "pinned": false,
+     "frozen": true
     },
     {
      "text": "茨师傅说黄山学院是专科，让去百度词条改",
      "at": 1792940166283,
-     "pinned": false
+     "pinned": false,
+     "frozen": true
     },
     {
      "text": "冉秋发猫图并喵了一声",
      "at": 1792940166283,
-     "pinned": false
+     "pinned": false,
+     "frozen": true
     }
    ],
    "events": [],
@@ -1850,7 +1872,7 @@
 (function () {
   "use strict";
 
-  var KEY = "qqbot.web.v1";
+  var KEY = "qqbot.web.v2";  // v2：换成真实数据，旧缓存作废
   var DAY = 86400000;
   var MAX_LINES = 500;
 
@@ -1955,7 +1977,7 @@
     }
     var m = S.mem[chat];
     m.facts = (m.facts || []).filter(function (f) {
-      return f.pinned || !f.at || (Date.now() - f.at) < 14 * DAY;
+      return f.pinned || f.frozen || !f.at || (Date.now() - f.at) < 14 * DAY;
     });
     return m;
   }
@@ -1973,10 +1995,14 @@
     save();
   }
 
+  function hourKey(d) {
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T" + pad(d.getHours());
+  }
+
   function bump(kind) {
-    var h = new Date().getHours();
-    S.stats[h] = S.stats[h] || { received: 0, replied: 0 };
-    S.stats[h][kind] += 1;
+    var k = hourKey(new Date());
+    S.stats[k] = S.stats[k] || { received: 0, replied: 0, dropped: 0 };
+    S.stats[k][kind] = (S.stats[k][kind] || 0) + 1;
     save();
   }
 
@@ -2156,11 +2182,15 @@
 
   function stats(hours) {
     var out = [];
-    var nowH = new Date().getHours();
-    for (var i = 0; i < hours; i += 1) {
-      var h = (nowH - (hours - 1 - i) + 24) % 24;
-      var b = S.stats[h] || { received: 0, replied: 0 };
-      out.push({ h: h, received: b.received, replied: b.replied });
+    for (var i = hours - 1; i >= 0; i -= 1) {
+      var d = new Date(Date.now() - i * 3600000);
+      var b = S.stats[hourKey(d)] || {};
+      out.push({
+        label: pad(d.getHours()) + ":00",
+        received: b.received || 0,
+        replied: b.replied || 0,
+        dropped: b.dropped || 0
+      });
     }
     return { hours: out };
   }
@@ -2300,8 +2330,19 @@
         return json({ ok: true });
 
       case "/api/clear":
-        if (chat === "all") S.lines = [];
-        else S.lines = S.lines.filter(function (l) { return l.key !== chat; });
+        var scope = body.scope || "chat";
+        var target = scope === "all" ? null : chat;
+        if (body.display !== false) {
+          if (target && target !== "all") S.lines = S.lines.filter(function (l) { return l.key !== target; });
+          else S.lines = [];
+        }
+        if (body.memory) {
+          if (target && target !== "all") {
+            S.mem[target] = { summary: "", events: [], facts: [], mood: 60, count: 0 };
+          } else {
+            S.mem = {};
+          }
+        }
         save();
         return json({ ok: true });
 

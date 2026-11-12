@@ -13,7 +13,7 @@
 (function () {
   "use strict";
 
-  var KEY = "qqbot.web.v1";
+  var KEY = "qqbot.web.v2";  // v2：换成真实数据，旧缓存作废
   var DAY = 86400000;
   var MAX_LINES = 500;
 
@@ -118,7 +118,7 @@
     }
     var m = S.mem[chat];
     m.facts = (m.facts || []).filter(function (f) {
-      return f.pinned || !f.at || (Date.now() - f.at) < 14 * DAY;
+      return f.pinned || f.frozen || !f.at || (Date.now() - f.at) < 14 * DAY;
     });
     return m;
   }
@@ -136,10 +136,14 @@
     save();
   }
 
+  function hourKey(d) {
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T" + pad(d.getHours());
+  }
+
   function bump(kind) {
-    var h = new Date().getHours();
-    S.stats[h] = S.stats[h] || { received: 0, replied: 0 };
-    S.stats[h][kind] += 1;
+    var k = hourKey(new Date());
+    S.stats[k] = S.stats[k] || { received: 0, replied: 0, dropped: 0 };
+    S.stats[k][kind] = (S.stats[k][kind] || 0) + 1;
     save();
   }
 
@@ -319,11 +323,15 @@
 
   function stats(hours) {
     var out = [];
-    var nowH = new Date().getHours();
-    for (var i = 0; i < hours; i += 1) {
-      var h = (nowH - (hours - 1 - i) + 24) % 24;
-      var b = S.stats[h] || { received: 0, replied: 0 };
-      out.push({ h: h, received: b.received, replied: b.replied });
+    for (var i = hours - 1; i >= 0; i -= 1) {
+      var d = new Date(Date.now() - i * 3600000);
+      var b = S.stats[hourKey(d)] || {};
+      out.push({
+        label: pad(d.getHours()) + ":00",
+        received: b.received || 0,
+        replied: b.replied || 0,
+        dropped: b.dropped || 0
+      });
     }
     return { hours: out };
   }
@@ -463,8 +471,19 @@
         return json({ ok: true });
 
       case "/api/clear":
-        if (chat === "all") S.lines = [];
-        else S.lines = S.lines.filter(function (l) { return l.key !== chat; });
+        var scope = body.scope || "chat";
+        var target = scope === "all" ? null : chat;
+        if (body.display !== false) {
+          if (target && target !== "all") S.lines = S.lines.filter(function (l) { return l.key !== target; });
+          else S.lines = [];
+        }
+        if (body.memory) {
+          if (target && target !== "all") {
+            S.mem[target] = { summary: "", events: [], facts: [], mood: 60, count: 0 };
+          } else {
+            S.mem = {};
+          }
+        }
         save();
         return json({ ok: true });
 
