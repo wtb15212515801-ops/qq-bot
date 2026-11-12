@@ -283,7 +283,8 @@
             bump("replied");
             i += 1;
             setTimeout(next, 500 + Math.random() * 700);
-          })();
+          window.__WEBSHIM_END__ = true;
+  })();
         });
       }, wait);
     })();
@@ -553,82 +554,47 @@
     return nativeFetch ? nativeFetch(input, init) : Promise.reject(new Error("no fetch"));
   };
 
-  /* 输入框提示：桌面版写的是「以XX的身份发一句」，网页版是你在说话 */
-  function fixPlaceholder() {
-    var box = document.getElementById("sendbox");
-    if (!box) return false;
-    if (box.placeholder.indexOf("说点什么") !== 0 && !box.disabled) {
-      box.placeholder = "说点什么（Enter 发送）";
-    }
-    return true;
-  }
-
-  // 网页版没有 QQ 登录：把桌面版的扫码 / 启动 / 账号状态全部拿掉，只留「能聊天」
-  function adaptForWeb() {
-    var css = document.createElement("style");
-    css.textContent = [
-      "#p-napcat,#p-account,#p-bot,#btn-start,#btn-stop,#qrbox{display:none !important}",
-      "#aboutSetup,#aboutGuide,#emptyGuide{display:none !important}",
-      "#webbar .pill{margin-left:0}",
-      "@media (max-width:820px){.side{width:148px!important}}"
-    ].join("\n");
-    document.head.appendChild(css);
-
-    var pills = document.querySelector("header .pills");
-    if (pills && !document.getElementById("webbar")) {
-      var bar = document.createElement("div");
-      bar.className = "pills";
-      bar.id = "webbar";
-      bar.innerHTML = '<div class="pill ok" id="w-state"><i></i><span>本地演示</span></div>';
-      pills.parentNode.insertBefore(bar, pills.nextSibling);
-    }
-
-    // 状态随时更新：填了 Key 就显示模型名
-    setInterval(function () {
-      var el = document.querySelector("#w-state span");
-      if (!el) return;
-      var want = S.cfg.apiKey ? "已接入 " + (S.cfg.model || "模型") : "本地演示";
-      if (el.textContent !== want) el.textContent = want;
-      var pill = document.getElementById("w-state");
-      if (pill && S.cfg.apiKey && pill.className.indexOf("ok") < 0) pill.className = "pill ok";
-    }, 1000);
-
-    // 「关于」里那几句是桌面版写的，网页版换成对的说法
-    setInterval(function () {
-      var mods = document.querySelectorAll(".modal, .dialog");
-      for (var i = 0; i < mods.length; i += 1) {
-        var m = mods[i];
-        if (m.getAttribute("data-webpolish") === "1") continue;
-        if ((m.innerText || "").indexOf("关于 QQ BOT") < 0) continue;
-        m.setAttribute("data-webpolish", "1");
-
-        var cells = m.querySelectorAll("div");
-        for (var j = 0; j < cells.length; j += 1) {
-          var label = (cells[j].textContent || "").trim();
-          var next = cells[j].nextElementSibling;
-          if (!next) continue;
-          if (label === "运行方式") {
-            next.textContent = "网页版：纯前端，数据只存在这个浏览器里";
-          } else if (label === "版本") {
-            next.textContent = "网页版（和桌面版同一个界面）";
+  /*
+   * 输入框提示：桌面版每秒都把它写回「以XX的身份发一句」，跟着改就会来回闪。
+   * 这里在原型上做一次拦截：只针对 #sendbox，别处照常。节点被重建也不会失效。
+   */
+  function guardPlaceholder() {
+    try {
+      var proto = window.HTMLInputElement && HTMLInputElement.prototype;
+      var desc = proto && Object.getOwnPropertyDescriptor(proto, "placeholder");
+      if (!desc || !desc.set || proto.__webGuarded) return false;
+      proto.__webGuarded = true;
+      Object.defineProperty(proto, "placeholder", {
+        configurable: true,
+        enumerable: desc.enumerable,
+        get: desc.get,
+        set: function (v) {
+          if (this && this.id === "sendbox") {
+            var want = (S && S.bot) ? "说点什么（Enter 发送）" : "机器人没在运行";
+            // 值没变就什么都不做，避免每秒无谓的属性写入
+            if (desc.get.call(this) !== want) desc.set.call(this, want);
+          } else {
+            desc.set.call(this, v);
           }
         }
+      });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
 
-        var lis = m.querySelectorAll("li");
-        for (var k = lis.length - 1; k >= 0; k -= 1) {
-          if ((lis[k].textContent || "").indexOf("小号") >= 0) lis[k].parentNode.removeChild(lis[k]);
-        }
+  function fixPlaceholder() {
+    guardPlaceholder();
+    var box = document.getElementById("sendbox");
+    if (box) {
+      var want = (S && S.bot) ? "说点什么（Enter 发送）" : "机器人没在运行";
+      if (box.placeholder !== want) {
+        var d = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "placeholder");
+        if (d && d.set) d.set.call(box, want);
       }
-    }, 900);
-
-    // 清空后桌面版会显示「扫码登录」那套引导，网页版换成一句话
-    setInterval(function () {
-      var e = document.getElementById("empty");
-      if (e && e.offsetParent && (e.innerText || "").indexOf("NapCat") >= 0) {
-        e.innerHTML = '<div style="padding:26px 10px;color:#8a93a2;text-align:center;line-height:1.9">' +
-          '这里还没有消息<br>在下面输入框说句话试试</div>';
-      }
-    }, 1200);
+    }
+    return !!box;
   }
 
   // 网页版自己的引导：不检查环境，直接告诉人「能聊」和「怎么接真模型」
@@ -721,25 +687,101 @@
     document.body.appendChild(mask);
   }
 
+  function safe(name, fn) {
+    try {
+      return fn();
+    } catch (e) {
+      (window.__WEBERR__ = window.__WEBERR__ || []).push(name + ": " + (e && e.message));
+      return null;
+    }
+  }
+
+  // 网页版外壳适配：去掉 QQ 登录相关控件，只留「能聊天」
+  function adaptForWeb() {
+    if (document.getElementById("web-style")) return;
+
+    var css = document.createElement("style");
+    css.id = "web-style";
+    css.textContent = [
+      "#p-napcat,#p-account,#p-bot,#btn-start,#btn-stop,#qrbox{display:none !important}",
+      "#aboutSetup,#aboutGuide,#emptyGuide{display:none !important}",
+      "#webbar .pill{margin-left:0}",
+      "@media (max-width:820px){.side{width:148px !important}}"
+    ].join("\n");
+    document.head.appendChild(css);
+
+    var pills = document.querySelector("header .pills");
+    if (pills && !document.getElementById("webbar")) {
+      var bar = document.createElement("div");
+      bar.className = "pills";
+      bar.id = "webbar";
+      bar.innerHTML = '<div class="pill ok" id="w-state"><i></i><span>本地演示</span></div>';
+      pills.parentNode.insertBefore(bar, pills.nextSibling);
+    }
+
+    // 状态：填了 Key 就显示模型名
+    setInterval(function () {
+      var el = document.querySelector("#w-state span");
+      if (!el) return;
+      var want = (S && S.cfg.apiKey) ? "已接入 " + (S.cfg.model || "模型") : "本地演示";
+      if (el.textContent !== want) el.textContent = want;
+    }, 1000);
+
+    // 清空后桌面版会显示「扫码登录」那套引导，网页版换成一句话
+    setInterval(function () {
+      var e = document.getElementById("empty");
+      if (e && e.offsetParent && (e.innerText || "").indexOf("NapCat") >= 0) {
+        e.innerHTML = '<div style="padding:26px 10px;color:#8a93a2;text-align:center;line-height:1.9">' +
+          "这里还没有消息<br>在下面输入框说句话试试</div>";
+      }
+    }, 1200);
+
+    // 「关于」里那几句是桌面版写的，网页版换成对的说法
+    setInterval(function () {
+      var mods = document.querySelectorAll(".modal, .dialog");
+      for (var i = 0; i < mods.length; i += 1) {
+        var m = mods[i];
+        if (m.getAttribute("data-webpolish") === "1") continue;
+        if ((m.innerText || "").indexOf("关于 QQ BOT") < 0) continue;
+        m.setAttribute("data-webpolish", "1");
+
+        var cells = m.querySelectorAll("div");
+        for (var j = 0; j < cells.length; j += 1) {
+          var label = (cells[j].textContent || "").trim();
+          var next = cells[j].nextElementSibling;
+          if (!next) continue;
+          if (label === "运行方式") next.textContent = "网页版：纯前端，数据只存在这个浏览器里";
+          else if (label === "版本") next.textContent = "网页版（和桌面版同一个界面）";
+        }
+
+        var lis = m.querySelectorAll("li");
+        for (var k = lis.length - 1; k >= 0; k -= 1) {
+          if ((lis[k].textContent || "").indexOf("小号") >= 0) lis[k].parentNode.removeChild(lis[k]);
+        }
+      }
+    }, 900);
+  }
+
   function boot() {
-    adaptForWeb();
-    webWelcome();
-    if (!fixPlaceholder()) {
+    window.__WEBSHIM_BOOT__ = true;
+    safe("adapt", adaptForWeb);
+    safe("welcome", webWelcome);
+    safe("placeholder", function () { fixPlaceholder(); });
+    // 界面脚本可能在后面才建出输入框，再补两次
+    setTimeout(function () { safe("placeholder2", function () { fixPlaceholder(); }); }, 400);
+    setTimeout(function () { safe("placeholder3", function () { fixPlaceholder(); }); }, 1500);
+
+    if (false) {
       var tries = 0;
       var t = setInterval(function () {
         tries += 1;
         if (fixPlaceholder() || tries > 40) clearInterval(t);
       }, 100);
     }
-    var box = document.getElementById("sendbox");
-    if (box && window.MutationObserver) {
-      new MutationObserver(function () { fixPlaceholder(); })
-        .observe(box, { attributes: true, attributeFilter: ["placeholder", "disabled"] });
-    }
     // 桌面版的「首次设置向导」在网页里没意义（它检查 Node / WebView2 / NapCat），自动关掉
-    var tries = 0;
+    var guardTries = 0;
     var closer = setInterval(function () {
-      tries += 1;
+      guardTries += 1;
       if (document.body.innerText.indexOf("首次设置向导") >= 0) {
         var btns = document.querySelectorAll("button");
         for (var i = 0; i < btns.length; i += 1) {
@@ -750,7 +792,7 @@
           }
         }
       }
-      if (tries > 40) clearInterval(closer);
+      if (guardTries > 40) clearInterval(closer);
     }, 300);
 
     setTimeout(function () {
@@ -760,6 +802,8 @@
 
     window.__QQBOOT_WEB__ = { store: S, save: save, reset: function () { localStorage.removeItem(KEY); location.reload(); } };
   }
+
+  window.__WEBSHIM_READY__ = true;
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", boot);
