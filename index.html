@@ -1873,6 +1873,7 @@
   "use strict";
 
   var KEY = "qqbot.web.v2";  // v2：换成真实数据，旧缓存作废
+  var BUILD = "v5";           // 改了适配层就加一，页面上能看到
   var DAY = 86400000;
   var MAX_LINES = 500;
 
@@ -2574,9 +2575,22 @@
       var bar = document.createElement("div");
       bar.className = "pills";
       bar.id = "webbar";
-      bar.innerHTML = '<div class="pill ok" id="w-state"><i></i><span>本地演示</span></div>';
+      bar.innerHTML = '<div class="pill ok" id="w-state"><i></i><span>本地演示</span></div>' +
+        '<div class="pill" id="w-build" title="网页版适配层版本"><span>' + BUILD + '</span></div>';
       pills.parentNode.insertBefore(bar, pills.nextSibling);
     }
+
+    // 自检：状态条没建出来，说明页面是旧的（浏览器缓存），直接告诉人怎么办
+    setTimeout(function () {
+      if (document.getElementById("webbar")) return;
+      var tip = document.createElement("div");
+      tip.style.cssText =
+        "position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:99998;" +
+        "background:#c0392b;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;" +
+        "box-shadow:0 8px 24px rgba(0,0,0,.25)";
+      tip.textContent = "页面是旧缓存，按 Ctrl+Shift+R（Mac 用 Cmd+Shift+R）强制刷新";
+      document.body.appendChild(tip);
+    }, 4000);
 
     // 状态：填了 Key 就显示模型名
     setInterval(function () {
