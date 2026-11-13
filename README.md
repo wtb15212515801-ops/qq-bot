@@ -48,25 +48,25 @@ node tools/prompt.js
 
 ## 网页版（不用装任何东西）
 
-桌面版的界面原样搬到浏览器里跑：`ui/index.html` 一行没改，只是把后台换掉了。
-
-桌面版靠 C# 外壳提供 `/api/state`、`/api/messages` 这些接口，网页版用一个适配层
-（`web-shim.js`）在浏览器里把那套接口实现出来——状态、消息、记忆、统计全部存在
-`localStorage`，发消息时走本地规则，或者直连大模型。
+`web/app.html` 是一个独立的网页应用：和桌面版同一套人设、同一套记忆与频率逻辑，
+但按浏览器重写了界面——没有扫码登录、没有环境检查、没有启动按钮。
 
 ```
 在线：  https://wtb15212515801-ops.github.io/qq-bot/
 离线：  双击 index.html（file:// 也能用，不用起服务器）
 
-界面：  ui/index.html   （和桌面版同一个文件）
-适配：  web-shim.js     （把 /api/* 换成浏览器实现）
-构建：  node tools/build-web.mjs   → 合并成单文件 index.html
-数据：  node tools/make-seed.mjs  → 从 data/ 抽真实会话生成 web-seed.json
+界面：  web/app.html      （手写，不再套壳桌面版）
+数据：  tools/make-seed.mjs  → 从 data/ 抽真实会话生成 web-seed.json
+构建：  tools/build-web.mjs  → 把种子内联进去，输出根目录 index.html
 ```
 
-**能做什么**：聊天、记忆面板（置顶/删除/心情）、命中率统计、设计面板里改人设和 API Key。
+打开就是聊天：默认本地规则回复；在「设计」里填自己的 DeepSeek Key 就能换成真模型，
+浏览器直连 `api.deepseek.com`，不需要代理。Key 只存在 localStorage。
 
-**不能做什么**：接管 QQ。真要往群里发消息，还是得装桌面版。
+功能对齐桌面版：会话列表、消息流、记忆（置顶/删除/心情）、命中率统计、
+人设与 API 设计、清理（清屏 / 清记忆）、回应频度、关于。
+
+做不到的两件事：登录 QQ、往群里发消息——那需要在你自己电脑上跑 NapCat。
 
 ---
 

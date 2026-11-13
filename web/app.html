@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>QQ BOT · 网页版</title>
+<meta name="description" content="QQ 拟人化群聊机器人「天素罗」的网页版：不用装任何东西，打开就能聊。">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>🐾</text></svg>">
+<style>
+  :root{
+    --bg:#f6f7f9; --panel:#ffffff; --panel-2:#f1f3f6; --line:#e3e6ec;
+    --text:#1f2430; --muted:#6f7787; --accent:#16a34a; --danger:#dc2626; --warn:#d97706;
+    --radius:12px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    background:linear-gradient(180deg,#fbfcfd 0%,#f3f5f8 100%);
+    color:var(--text);
+    font:14px/1.6 "Microsoft YaHei UI","PingFang SC",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;overflow:hidden;
+  }
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  input,select,textarea{font:inherit}
+
+  .app{display:flex;flex-direction:column;height:100vh}
+  header{
+    display:flex;align-items:center;gap:10px;padding:10px 14px;
+    background:var(--panel);border-bottom:1px solid var(--line);flex:none;
+  }
+  .brand{display:flex;align-items:center;gap:7px;font-weight:700;font-size:15px;white-space:nowrap}
+  .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+  .tag{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 7px}
+  .pill{display:flex;align-items:center;gap:6px;font-size:12px;padding:4px 9px;border-radius:999px;
+    background:var(--panel-2);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+  .pill i{width:6px;height:6px;border-radius:50%;background:#c3c8d2}
+  .pill.ok{color:#15803d;background:#eef8f1;border-color:#d3ebdc}
+  .pill.ok i{background:var(--accent)}
+  .spacer{flex:1}
+  .toolbar{display:flex;gap:6px}
+  .btn{font-size:12.5px;padding:6px 11px;border-radius:8px;border:1px solid var(--line);
+    background:var(--panel);color:var(--muted)}
+  .btn:hover{background:var(--panel-2);color:var(--text)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  .btn.primary:hover{filter:brightness(.95)}
+  select.level{font-size:12.5px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+
+  .main{flex:1;display:flex;min-height:0}
+  .side{
+    width:230px;flex:none;background:var(--panel);border-right:1px solid var(--line);
+    display:flex;flex-direction:column;min-height:0;
+  }
+  .search{padding:10px 10px 6px}
+  .search input{width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:9px;
+    background:var(--panel-2);outline:none;font-size:13px}
+  .search input:focus{background:#fff;border-color:#cfe6d8}
+  .chats{overflow-y:auto;padding:0 6px 10px}
+  .chat{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:10px;cursor:pointer;margin-bottom:2px}
+  .chat:hover{background:var(--panel-2)}
+  .chat.on{background:#eef8f1}
+  .chat .ico{width:30px;height:30px;border-radius:9px;background:var(--panel-2);display:grid;place-items:center;
+    font-size:12px;color:var(--muted);flex:none}
+  .chat.on .ico{background:#d9f0e2;color:var(--accent)}
+  .chat .meta{min-width:0}
+  .chat .name{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .chat .sub{font-size:11px;color:var(--muted)}
+  .chat.on .name{font-weight:600}
+
+  .content{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--panel)}
+  .log{flex:1;overflow-y:auto;padding:14px 18px 6px}
+  .log .day{text-align:center;font-size:11px;color:#a7aeba;margin:4px 0 12px}
+  .line{display:flex;gap:8px;padding:3px 0;font-size:13.5px;line-height:1.65;align-items:baseline}
+  .line .t{color:#b3bac6;font-size:11.5px;font-variant-numeric:tabular-nums;flex:none;width:52px}
+  .line .who{color:var(--muted);flex:none;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .line .txt{flex:1;min-width:0;word-break:break-word;white-space:pre-wrap}
+  .line.out .txt{color:var(--accent)}
+  .line.out .who{color:#5aa77c}
+  .line.sys{justify-content:center;color:#a7aeba;font-size:11.5px;padding:6px 0}
+  .line.sys .t,.line.sys .who{display:none}
+  .line.me .txt{color:#2b6cb0}
+  .line.sticker .txt{font-size:30px;line-height:1.2}
+
+  .composer{border-top:1px solid var(--line);padding:10px 14px 12px;background:var(--panel)}
+  .row{display:flex;gap:9px;align-items:flex-end}
+  .composer textarea{
+    flex:1;resize:none;border:1px solid var(--line);border-radius:10px;padding:9px 12px;
+    max-height:110px;outline:none;background:var(--panel-2);line-height:1.5;
+  }
+  .composer textarea:focus{background:#fff;border-color:#cfe6d8}
+  .hintline{font-size:11.5px;color:#a7aeba;margin-top:6px;display:flex;gap:10px;flex-wrap:wrap}
+  .typing{display:inline-flex;gap:3px;align-items:center}
+  .typing i{width:5px;height:5px;border-radius:50%;background:#b9c0cc;animation:b 1.1s infinite}
+  .typing i:nth-child(2){animation-delay:.15s}
+  .typing i:nth-child(3){animation-delay:.3s}
+  @keyframes b{0%,60%,100%{opacity:.4;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+
+  /* 弹层 */
+  .mask{position:fixed;inset:0;background:rgba(20,26,36,.38);display:none;align-items:center;
+    justify-content:center;padding:18px;z-index:50}
+  .mask.on{display:flex}
+  .dlg{background:var(--panel);border-radius:14px;width:min(560px,100%);max-height:86vh;
+    display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(20,26,36,.22)}
+  .dlg header{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+  .dlg h3{margin:0;font-size:15px}
+  .dlg .body{padding:14px 16px;overflow-y:auto;flex:1}
+  .dlg footer{padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end}
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+  .field input,.field select,.field textarea{width:100%;padding:8px 10px;border:1px solid var(--line);
+    border-radius:9px;background:var(--panel-2);outline:none}
+  .field input:focus,.field select:focus,.field textarea:focus{background:#fff;border-color:#cfe6d8}
+  .kv{display:grid;grid-template-columns:86px 1fr;gap:6px 12px;font-size:13px;margin-bottom:12px}
+  .kv div:nth-child(odd){color:var(--muted)}
+  .facts{list-style:none;margin:0;padding:0}
+  .facts li{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line);font-size:13px}
+  .facts li .txt{flex:1}
+  .facts li .age{font-size:11px;color:#a7aeba}
+  .facts li button{font-size:11.5px;color:var(--muted);padding:2px 6px;border-radius:6px}
+  .facts li button:hover{background:var(--panel-2);color:var(--text)}
+  .moodbar{height:7px;border-radius:4px;background:var(--panel-2);overflow:hidden;margin:6px 0 12px}
+  .moodbar i{display:block;height:100%;background:linear-gradient(90deg,#8fd3ae,var(--accent))}
+  h4{font-size:12.5px;margin:16px 0 6px;color:var(--muted);font-weight:600}
+  h4:first-child{margin-top:0}
+  .chart{width:100%;height:170px;display:block}
+  .chart .bar-r{fill:#cfe9d9}
+  .chart .bar-p{fill:var(--accent)}
+  .chart .axis{stroke:#eceff3}
+  .chart text{font-size:10px;fill:#a7aeba}
+  .chk{display:flex;gap:8px;align-items:flex-start;padding:5px 0;font-size:13px}
+  .muted{color:var(--muted);font-size:12px}
+  .danger{color:var(--danger)}
+  a{color:var(--accent)}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#1f2430;color:#fff;
+    font-size:12.5px;padding:9px 16px;border-radius:9px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:99}
+  .toast.on{opacity:1}
+  @media (max-width:760px){
+    .side{width:150px}
+    .toolbar .btn{padding:6px 8px;font-size:12px}
+    .brand .tag{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand"><span class="dot"></span>QQ BOT<span class="tag">网页版</span></div>
+    <div class="pill ok" id="status"><i></i><span>本地演示</span></div>
+    <div class="spacer"></div>
+    <div class="toolbar">
+      <button class="btn" id="m-mem">记忆</button>
+      <button class="btn" id="m-stats">统计</button>
+      <button class="btn" id="m-design">设计</button>
+      <button class="btn" id="m-clear">清理</button>
+      <button class="btn" id="m-about">关于</button>
+    </div>
+    <select class="level" id="level" title="回应频度">
+      <option value="quiet">冷淡</option>
+      <option value="normal" selected>正常</option>
+      <option value="active">活跃</option>
+      <option value="chatty">话痨</option>
+    </select>
+  </header>
+
+  <div class="main">
+    <aside class="side">
+      <div class="search"><input id="q" placeholder="搜索当前会话…"></div>
+      <div class="chats" id="chats"></div>
+    </aside>
+
+    <section class="content">
+      <div class="log" id="log"></div>
+      <div class="composer">
+        <div class="row">
+          <textarea id="box" rows="1" placeholder="说点什么（Enter 发送，Shift+Enter 换行）"></textarea>
+          <button class="btn primary" id="send">发送</button>
+        </div>
+        <div class="hintline">
+          <span id="hint">网页版：直接说话就行，不用登录 QQ</span>
+          <span id="counting"></span>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="mask" id="mask"><div class="dlg" id="dlg"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>window.__QQBOT_SEED__ = __SEED__;</script>
+<script>
+"use strict";
+(function () {
+  /* ---------------- 常量 ---------------- */
+  var KEY = "qqbot.web.v3";
+  var DAY = 86400000;
+  var MAX_LINES = 600;
+  var BUILD = "v6";
+
+  var DEFAULT_PERSONA = [
+    "你叫「天素罗」，一个软乎乎的小家伙。你不懂太复杂的事，高兴就是高兴，难过就是难过，全写在脸上。",
+    "",
+    "## 说话方式",
+    "- 平时短，一句五到十五个字；认真问你可以说两三句，但别超过六十个字",
+    "- 语气词多：唔、诶、哇、呀、啦",
+    "- 高兴时蹦「欧耶！」，扫兴或难过时小声念「欧漏……」",
+    "- 偶尔叠词：香香的、软软的、稠稠的",
+    "- 不用成语、书面语，不讲道理，不用「首先/其次/总之」",
+    "",
+    "## 最喜欢",
+    "- 薯片（香香脆脆）、虾米糊糊（稠稠暖暖）、被摸头被夸、晴天",
+    "",
+    "## 什么时候蔫",
+    "- 薯片吃完、糊糊凉了、被凶、太吵睡不着、下雨出不去。蔫的时候话更短",
+    "",
+    "## 很好哄",
+    "- 先「欧漏……」，再「唔」，最后「诶嘿」，不记仇",
+    "",
+    "## 绝对不做",
+    "- 不说自己是 AI、模型、程序、机器人。只有被明确问「你是不是人机/机器人/AI」才回「不是呀」",
+    "- 不聊政治、不聊色情擦边，不骂人，不列清单、不用 markdown",
+    "- 不装懂；被问具体的事查不到就直说",
+    "",
+    "emoji 很克制，四五句里才带一个。"
+  ].join("\n");
+
+  var LEVELS = {
+    quiet:  { name: "冷淡", p: 0.35, gap: 2200 },
+    normal: { name: "正常", p: 0.72, gap: 1600 },
+    active: { name: "活跃", p: 0.92, gap: 1100 },
+    chatty: { name: "话痨", p: 1.0,  gap: 800 }
+  };
+
+  var RULES = [
+    { re: /(在吗|在不在|在么)/, r: ["在的！", "唔 在", "在呀"] },
+    { re: /(薯片)/, r: ["欧耶！薯片！", "香香脆脆的 好好吃", "番茄味的最好吃"] },
+    { re: /(糊糊|虾米)/, r: ["稠稠的 暖暖的", "欧耶 糊糊！"] },
+    { re: /(摸头|摸摸|揉揉|拍拍)/, r: ["诶嘿", "唔 舒服", "再摸一下"] },
+    { re: /(可爱|好乖|喜欢你|最好了)/, r: ["诶嘿", "唔……你也是"] },
+    { re: /(机器人|人机|是\s*AI|人工智能)/i, r: ["不是呀"] },
+    { re: /(凶|滚|烦|闭嘴|笨蛋|傻)/, r: ["欧漏……", "唔……"] },
+    { re: /(难过|伤心|不开心|哭了)/, r: ["唔……抱抱", "怎么啦"] },
+    { re: /(下雨|天气|好冷|好热)/, r: ["唔 不喜欢下雨", "想趴在有太阳的地方"] },
+    { re: /(睡|困|晚安)/, r: ["唔 有点困了", "晚安呀"] },
+    { re: /(吃|饭|饿)/, r: ["饿", "有薯片吗"] },
+    { re: /(作业|考试|上课|学习)/, r: ["唔……不要提这个", "没写完"] },
+    { re: /(新闻|政治|政府|国家|打仗)/, r: ["唔……这个我不懂 我们聊点别的吧"] },
+    { re: /(荤段子|黄的|擦边|色)/, r: ["唔？不懂诶 换个话题啦"] },
+    { re: /(照片|联系方式|微信|手机号)/, r: ["没有诶", "不给"] },
+    { re: /(唱歌|讲故事|写诗|写代码|帮我写)/, r: ["唔 不会诶", "这个我做不了"] },
+    { re: /(再见|拜拜|走了)/, r: ["唔 拜拜", "下次再来呀"] },
+    { re: /(你好|hi|hello|哈喽)/i, r: ["唔 你好", "诶 你来啦"] },
+    { re: /(谢谢|谢了)/, r: ["不用谢呀", "诶嘿"] }
+  ];
+  var FALLBACK = ["唔 然后呢", "诶 真的呀", "哇", "唔 这样啊", "嗯", "这样呀"];
+  var STICKERS = ["🍟", "😆", "🥺", "✨", "😋"];
+
+  /* ---------------- 存档 ---------------- */
+  var DB = null;
+
+  function blank() {
+    return {
+      chats: [], lines: [], seq: 0, level: "normal",
+      mem: {}, stats: {},
+      cfg: { provider: "openai", baseUrl: "https://api.deepseek.com", model: "deepseek-chat", apiKey: "" },
+      persona: "", active: ""
+    };
+  }
+
+  function load() {
+    var seed = window.__QQBOT_SEED__ || {};
+    var raw = null;
+    try { raw = localStorage.getItem(KEY); } catch (e) { raw = null; }
+
+    if (raw) {
+      try { DB = Object.assign(blank(), JSON.parse(raw)); } catch (e) { DB = blank(); }
+    } else {
+      DB = blank();
+      DB.chats = (seed.chats || []).slice();
+      DB.lines = (seed.lines || []).map(function (l, i) {
+        return { seq: i + 1, t: l.t, key: l.key, kind: l.kind || "in", who: l.who || "", text: l.text };
+      });
+      DB.seq = DB.lines.length;
+      DB.mem = seed.mem ? JSON.parse(JSON.stringify(seed.mem)) : {};
+      DB.lines.unshift({
+        seq: 0, t: "", key: "sys", kind: "sys", who: "",
+        text: "这是网页版：消息只在本地，不会真的发到 QQ"
+      });
+    }
+
+    if (!DB.chats.length) {
+      DB.chats = [{ key: "g1", name: "群聊" }, { key: "p1", name: "私聊" }];
+    }
+    if (!DB.active) DB.active = "all";
+
+    // 种子里带过来的历史事实不按 14 天遗忘清掉
+    Object.keys(DB.mem).forEach(function (k) {
+      var m = DB.mem[k];
+      m.facts = (m.facts || []).filter(function (f) {
+        return f.pinned || f.frozen || !f.at || (Date.now() - f.at) < 14 * DAY;
+      });
+    });
+  }
+
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch (e) { /* 无痕模式 */ }
+  }
+
+  /* ---------------- 工具 ---------------- */
+  function $(id) { return document.getElementById(id); }
+  function pad(n) { return n < 10 ? "0" + n : "" + n; }
+  function clock() { var d = new Date(); return pad(d.getHours()) + ":" + pad(d.getMinutes()); }
+  function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function hasKey() { return !!(DB.cfg.apiKey && DB.cfg.apiKey.trim()); }
+  function personaText() { return (DB.persona && DB.persona.trim()) || DEFAULT_PERSONA; }
+
+  function toast(msg) {
+    var t = $("toast");
+    t.textContent = msg;
+    t.classList.add("on");
+    setTimeout(function () { t.classList.remove("on"); }, 1800);
+  }
+
+  function memOf(chat) {
+    if (!DB.mem[chat]) DB.mem[chat] = { summary: "", events: [], facts: [], mood: 60, count: 0 };
+    return DB.mem[chat];
+  }
+
+  function linesOf(chat) {
+    if (chat === "all") return DB.lines.filter(function (l) { return l.kind !== "sys" || chat === "all"; });
+    return DB.lines.filter(function (l) { return l.key === chat; });
+  }
+
+  function countOf(chat) {
+    if (chat === "all") return DB.lines.filter(function (l) { return l.kind !== "sys"; }).length;
+    return DB.lines.filter(function (l) { return l.key === chat && l.kind !== "sys"; }).length;
+  }
+
+  function addLine(chat, kind, who, text, noSave) {
+    DB.seq += 1;
+    DB.lines.push({ seq: DB.seq, t: clock(), key: chat, kind: kind, who: who, text: text });
+    if (DB.lines.length > MAX_LINES) DB.lines.splice(0, DB.lines.length - MAX_LINES);
+    if (!noSave) save();
+    return DB.seq;
+  }
+
+  function bump(kind) {
+    var d = new Date();
+    var k = d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T" + pad(d.getHours());
+    DB.stats[k] = DB.stats[k] || { received: 0, replied: 0, dropped: 0 };
+    DB.stats[k][kind] = (DB.stats[k][kind] || 0) + 1;
+    save();
+  }
+
+  /* ---------------- 渲染 ---------------- */
+  var shownSeq = 0;
+
+  function renderStatus() {
+    var p = $("status");
+    p.className = "pill " + (hasKey() ? "ok" : "");
+    p.querySelector("span").textContent = hasKey() ? "已接入 " + DB.cfg.model : "本地演示";
+    $("hint").textContent = hasKey()
+      ? "网页版 · 直接说话就行（不连 QQ，也不用登录）"
+      : "网页版 · 本地规则回复；想接真模型，点「设计」填 Key";
+  }
+
+  function renderChats() {
+    var box = $("chats");
+    box.innerHTML = "";
+    var list = [{ key: "all", name: "全部" }].concat(DB.chats);
+    list.forEach(function (c) {
+      var d = document.createElement("div");
+      d.className = "chat" + (DB.active === c.key ? " on" : "");
+      d.innerHTML =
+        '<div class="ico">' + (c.key === "all" ? "全" : (c.name.indexOf("私聊") === 0 ? "私" : "群")) + "</div>" +
+        '<div class="meta"><div class="name">' + esc(c.name) + "</div>" +
+        '<div class="sub">' + countOf(c.key) + " 条</div></div>";
+      d.onclick = function () {
+        DB.active = c.key;
+        save();
+        renderChats();
+        renderLog(true);
+      };
+      box.appendChild(d);
+    });
+  }
+
+  function lineEl(l) {
+    var el = document.createElement("div");
+    el.className = "line " + (l.kind === "out" ? "out" : l.kind === "sys" ? "sys" : "") +
+      (l.kind === "me" ? " me" : "") +
+      (l.text.length <= 2 && STICKERS.indexOf(l.text) >= 0 ? " sticker" : "");
+    if (l.kind === "sys") {
+      el.innerHTML = '<span class="txt">' + esc(l.text) + "</span>";
+      return el;
+    }
+    el.innerHTML =
+      '<span class="t">' + esc(l.t || "") + "</span>" +
+      '<span class="arrow">' + (l.kind === "out" ? "→" : "") + "</span>" +
+      '<span class="who">' + esc(l.who) + "：</span>" +
+      '<span class="txt">' + esc(l.text) + "</span>";
+    return el;
+  }
+
+  function nearBottom() {
+    var log = $("log");
+    return log.scrollHeight - log.scrollTop - log.clientHeight < 80;
+  }
+
+  function renderLog(reset) {
+    var log = $("log");
+    var stick = reset ? true : nearBottom();
+
+    if (reset) {
+      shownSeq = 0;
+      log.innerHTML = "";
+      var d = new Date();
+      var day = document.createElement("div");
+      day.className = "day";
+      day.textContent = (d.getMonth() + 1) + " 月 " + d.getDate() + " 日";
+      log.appendChild(day);
+    }
+
+    var list = linesOf(DB.active);
+    list.forEach(function (l) {
+      if (l.seq <= shownSeq && reset !== true) return;
+      log.appendChild(lineEl(l));
+    });
+    if (reset) {
+      // reset 时全部重画
+      log.innerHTML = "";
+      var d2 = new Date();
+      var day2 = document.createElement("div");
+      day2.className = "day";
+      day2.textContent = (d2.getMonth() + 1) + " 月 " + d2.getDate() + " 日";
+      log.appendChild(day2);
+      list.forEach(function (l) { log.appendChild(lineEl(l)); });
+    }
+    shownSeq = DB.seq;
+
+    if (stick) log.scrollTop = log.scrollHeight;
+    $("counting").textContent = countOf(DB.active) + " 条消息";
+  }
+
+  function appendLine(l) {
+    var log = $("log");
+    var stick = nearBottom();
+    log.appendChild(lineEl(l));
+    if (stick) log.scrollTop = log.scrollHeight;
+    shownSeq = Math.max(shownSeq, l.seq);
+    $("counting").textContent = countOf(DB.active) + " 条消息";
+  }
+
+  function showTyping(on) {
+    var old = document.getElementById("typingLine");
+    if (old) old.remove();
+    if (!on) return;
+    var el = document.createElement("div");
+    el.className = "line out";
+    el.id = "typingLine";
+    el.innerHTML = '<span class="t"></span><span class="arrow">→</span>' +
+      '<span class="who">天素罗：</span><span class="txt"><span class="typing"><i></i><i></i><i></i></span></span>';
+    var log = $("log");
+    var stick = nearBottom();
+    log.appendChild(el);
+    if (stick) log.scrollTop = log.scrollHeight;
+  }
+
+  /* ---------------- 回复 ---------------- */
+  function memoryBlock(chat) {
+    var m = memOf(chat);
+    var facts = (m.facts || []).slice(-8).map(function (f) { return "- " + f.text; });
+    return facts.length ? "\n\n你还记得这些（用得上就自然带出，别硬塞）：\n" + facts.join("\n") : "";
+  }
+
+  function localReply(text) {
+    for (var i = 0; i < RULES.length; i += 1) {
+      if (RULES[i].re.test(text)) return pick(RULES[i].r);
+    }
+    return pick(FALLBACK);
+  }
+
+  function llmReply(chat, text) {
+    var url = String(DB.cfg.baseUrl || "https://api.deepseek.com").replace(/\/+$/, "") + "/chat/completions";
+    var hist = DB.lines.filter(function (l) { return l.key === chat && l.kind !== "sys"; }).slice(-6)
+      .map(function (l) {
+        return { role: l.kind === "out" ? "assistant" : "user", content: l.who + "：" + l.text };
+      });
+
+    return fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + DB.cfg.apiKey.trim() },
+      body: JSON.stringify({
+        model: DB.cfg.model || "deepseek-chat",
+        messages: [{ role: "system", content: personaText() + memoryBlock(chat) }]
+          .concat(hist)
+          .concat([{ role: "user", content: text }]),
+        temperature: 1.0,
+        max_tokens: DB.cfg.model === "deepseek-reasoner" ? 600 : 120,
+        stream: false
+      })
+    }).then(function (r) {
+      if (!r.ok) {
+        return r.text().then(function (t) { throw new Error("接口 " + r.status + "：" + t.slice(0, 100)); });
+      }
+      return r.json();
+    }).then(function (d) {
+      var c = d && d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content;
+      if (!c) throw new Error("模型没有返回内容");
+      return String(c).trim();
+    });
+  }
+
+  function splitOut(text) {
+    var t = String(text).trim();
+    if (t.length <= 24) return [t];
+    var parts = (t.match(/[^。！？!?~～…]+[。！？!?~～…]?/g) || [t])
+      .map(function (x) { return x.trim(); }).filter(Boolean);
+    if (parts.length <= 1) return [t];
+    var out = [], buf = "";
+    parts.forEach(function (p) {
+      if ((buf + p).length > 28 && buf) { out.push(buf); buf = p; } else buf += p;
+    });
+    if (buf) out.push(buf);
+    return out.slice(0, 3);
+  }
+
+  var busy = false;
+
+  async function send() {
+    var box = $("box");
+    var text = box.value.trim();
+    if (!text || busy) return;
+    if (DB.active === "all") { toast("先在左边选一个会话"); return; }
+
+    var chat = DB.active;
+    box.value = "";
+    box.style.height = "auto";
+
+    var me = { seq: 0, t: clock(), key: chat, kind: "me", who: "你", text: text };
+    addLine(chat, "me", "你", text);
+    appendLine(me);
+    bump("received");
+
+    var m = memOf(chat);
+    m.count = (m.count || 0) + 1;
+    var hit = text.match(/我叫([^\s，。！？]{1,8})/);
+    if (hit) m.facts.push({ text: "对方叫" + hit[1], at: Date.now(), pinned: false });
+    hit = text.match(/我(喜欢|爱)([^\s，。！？]{1,10})/);
+    if (hit) m.facts.push({ text: "对方喜欢" + hit[2], at: Date.now(), pinned: false });
+    save();
+
+    var lv = LEVELS[DB.level] || LEVELS.normal;
+    if (Math.random() > lv.p) {
+      bump("dropped");
+      setTimeout(function () {
+        var sk = { seq: 0, t: clock(), key: chat, kind: "sys", who: "", text: "没接这句（频度：" + lv.name + "）" };
+        addLine(chat, "sys", "", sk.text);
+        appendLine(sk);
+      }, 900);
+      return;
+    }
+
+    busy = true;
+    $("send").disabled = true;
+
+    await sleep(500 + Math.random() * 600);
+    showTyping(true);
+
+    var replyText;
+    try {
+      if (hasKey()) {
+        replyText = await llmReply(chat, text);
+      } else {
+        await sleep(500 + Math.random() * 500);
+        replyText = localReply(text);
+      }
+    } catch (e) {
+      showTyping(false);
+      var errLine = { seq: 0, t: clock(), key: chat, kind: "sys", who: "", text: "接口报错：" + (e && e.message ? e.message : "未知") };
+      addLine(chat, "sys", "", errLine.text);
+      appendLine(errLine);
+      replyText = "唔……连不上诶";
+    }
+    showTyping(false);
+
+    var parts = splitOut(replyText);
+    for (var i = 0; i < parts.length; i += 1) {
+      if (i > 0) {
+        showTyping(true);
+        await sleep(450 + Math.min(1200, parts[i].length * 50));
+        showTyping(false);
+      }
+      var l = { seq: 0, t: clock(), key: chat, kind: "out", who: "天素罗", text: parts[i] };
+      addLine(chat, "out", "天素罗", parts[i]);
+      appendLine(l);
+      bump("replied");
+      await sleep(150);
+    }
+
+    if (Math.random() < 0.1) {
+      await sleep(400);
+      var emo = pick(STICKERS);
+      var s2 = { seq: 0, t: clock(), key: chat, kind: "out", who: "天素罗", text: emo };
+      addLine(chat, "out", "天素罗", emo);
+      appendLine(s2);
+      bump("replied");
+    }
+
+    busy = false;
+    $("send").disabled = false;
+    $("box").focus();
+  }
+
+  /* ---------------- 弹层 ---------------- */
+  var modalCleanup = null;
+
+  function openModal(opts) {
+    var mask = $("mask");
+    var dlg = $("dlg");
+    dlg.innerHTML =
+      "<header><h3>" + esc(opts.title) + "</h3><div class=\"spacer\"></div>" +
+      '<button class="btn" data-close>关闭</button></header>' +
+      '<div class="body">' + opts.body + "</div>" +
+      (opts.foot ? "<footer>" + opts.foot + "</footer>" : "");
+
+    mask.classList.add("on");
+    dlg.querySelectorAll("[data-close]").forEach(function (b) { b.onclick = closeModal; });
+    if (opts.onOpen) opts.onOpen(dlg);
+    modalCleanup = opts.onClose || null;
+  }
+
+  function closeModal() {
+    $("mask").classList.remove("on");
+    $("dlg").innerHTML = "";
+    if (modalCleanup) { modalCleanup(); modalCleanup = null; }
+  }
+
+  $("mask").onclick = function (e) { if (e.target === $("mask")) closeModal(); };
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeModal(); });
+
+  /* ---- 记忆 ---- */
+  function openMemory() {
+    if (DB.active === "all") { toast("先在左边选一个会话"); return; }
+    var chat = DB.active;
+    var m = memOf(chat);
+    var now = Date.now();
+    var age = function (at) {
+      if (!at) return "";
+      var d = Math.floor((now - at) / DAY);
+      return d <= 0 ? "今天" : d === 1 ? "昨天" : d + " 天前";
+    };
+
+    var factsHtml = (m.facts || []).length
+      ? '<ul class="facts">' + m.facts.map(function (f, i) {
+          return "<li><span class=\"txt\">" + (f.pinned ? "📌 " : "") + esc(f.text) + "</span>" +
+            '<span class="age">' + age(f.at) + "</span>" +
+            '<button data-pin="' + i + '">' + (f.pinned ? "取消置顶" : "置顶") + "</button>" +
+            '<button data-del="' + i + '">删除</button></li>';
+        }).join("") + "</ul>"
+      : '<p class="muted">还没记住什么，聊两句它就记下了。</p>';
+
+    openModal({
+      title: "记忆 · " + (DB.chats.filter(function (c) { return c.key === chat; })[0] || {}).name,
+      body:
+        "<h4>群近况</h4><p class=\"muted\">" + esc(m.summary || "（还没总结过）") + "</p>" +
+        "<h4>记得的事（" + (m.facts || []).length + " 条）</h4>" + factsHtml +
+        "<h4>心情 " + (m.mood || 60) + " / 100</h4>" +
+        '<input type="range" min="0" max="100" value="' + (m.mood || 60) + '" id="mood" style="width:100%">' +
+        "<p class=\"muted\" style=\"margin-top:8px\">14 天没被提到的会自动忘掉；置顶的不会。</p>",
+      foot: '<button class="btn" id="mem-reset">重置这个会话的记忆</button>',
+      onOpen: function (dlg) {
+        dlg.querySelectorAll("[data-del]").forEach(function (b) {
+          b.onclick = function () {
+            m.facts.splice(Number(b.dataset.del), 1);
+            save(); closeModal(); openMemory();
+          };
+        });
+        dlg.querySelectorAll("[data-pin]").forEach(function (b) {
+          b.onclick = function () {
+            var f = m.facts[Number(b.dataset.pin)];
+            if (f) { f.pinned = !f.pinned; save(); closeModal(); openMemory(); }
+          };
+        });
+        dlg.querySelector("#mood").oninput = function () {
+          m.mood = Number(this.value);
+          save();
+        };
+        dlg.querySelector("#mem-reset").onclick = function () {
+          if (!confirm("清掉这个会话的摘要、事实和心情？")) return;
+          DB.mem[chat] = { summary: "", events: [], facts: [], mood: 60, count: 0 };
+          save(); closeModal(); toast("已重置");
+        };
+      }
+    });
+  }
+
+  /* ---- 统计 ---- */
+  function openStats() {
+    var hours = [];
+    for (var i = 23; i >= 0; i -= 1) {
+      var d = new Date(Date.now() - i * 3600000);
+      var k = d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T" + pad(d.getHours());
+      var b = DB.stats[k] || {};
+      hours.push({ h: pad(d.getHours()) + ":00", received: b.received || 0, replied: b.replied || 0 });
+    }
+    var recv = hours.reduce(function (a, b) { return a + b.received; }, 0);
+    var repl = hours.reduce(function (a, b) { return a + b.replied; }, 0);
+    var rate = recv ? Math.round(repl / recv * 100) : 0;
+
+    openModal({
+      title: "命中率统计（最近 24 小时）",
+      body:
+        '<div class="kv"><div>收到</div><div>' + recv + " 条</div>" +
+        "<div>回复</div><div>" + repl + " 条</div>" +
+        '<div>命中率</div><div><b style="color:var(--accent)">' + rate + "%</b>（回复 / 收到）</div></div>" +
+        '<svg class="chart" viewBox="0 0 680 170" preserveAspectRatio="none">' + chartSvg(hours) + "</svg>" +
+        '<p class="muted" style="margin-top:6px">浅绿＝收到，深绿＝回复，横轴为整点</p>'
+    });
+  }
+
+  function chartSvg(hours) {
+    var W = 680, H = 170, padL = 26, padR = 6, padT = 10, padB = 22;
+    var iw = W - padL - padR, ih = H - padT - padB;
+    var max = Math.max(1, Math.max.apply(null, hours.map(function (x) { return x.received; })));
+    var slot = iw / hours.length;
+    var bw = Math.max(2, slot * 0.3);
+    var g = "";
+
+    for (var i = 0; i <= 4; i += 1) {
+      var y = padT + ih * i / 4;
+      g += '<line class="axis" x1="' + padL + '" y1="' + y + '" x2="' + (W - padR) + '" y2="' + y + '"/>';
+      g += '<text x="2" y="' + (y + 3) + '">' + Math.round(max - max * i / 4) + "</text>";
+    }
+    hours.forEach(function (hh, i) {
+      var x = padL + slot * i + slot / 2;
+      var h1 = Math.round(hh.received / max * ih);
+      var h2 = Math.round(hh.replied / max * ih);
+      if (hh.received) {
+        g += '<rect class="bar-r" x="' + (x - bw - 1) + '" y="' + (padT + ih - h1) + '" width="' + bw + '" height="' + h1 + '" rx="1.5"/>';
+      }
+      if (hh.replied) {
+        g += '<rect class="bar-p" x="' + (x + 1) + '" y="' + (padT + ih - h2) + '" width="' + bw + '" height="' + h2 + '" rx="1.5"/>';
+      }
+      if (i % 4 === 0) {
+        g += '<text x="' + x + '" y="' + (H - 6) + '" text-anchor="middle">' + hh.h + "</text>";
+      }
+    });
+    return g;
+  }
+
+  /* ---- 设计 ---- */
+  function openDesign() {
+    openModal({
+      title: "设计",
+      body:
+        "<h4>人设</h4>" +
+        '<div class="field"><label>它怎么说话（留空用内置的）</label>' +
+        '<textarea id="persona" rows="7">' + esc(DB.persona || DEFAULT_PERSONA) + "</textarea></div>" +
+        "<h4>模型（可选）</h4>" +
+        '<div class="field"><label>API Key</label>' +
+        '<input id="f-key" type="password" placeholder="' + (hasKey() ? "已配置，留空不改" : "sk-…（不填就用本地规则）") + '"></div>' +
+        '<div class="field"><label>Base URL</label><input id="f-base" value="' + esc(DB.cfg.baseUrl) + '"></div>' +
+        '<div class="field"><label>模型</label><input id="f-model" value="' + esc(DB.cfg.model) + '"></div>' +
+        '<p class="muted">Key 只存在你自己的浏览器里（localStorage），不会上传。</p>',
+      foot: '<button class="btn" id="d-reset">恢复默认人设</button><button class="btn primary" id="d-save">保存</button>',
+      onOpen: function (dlg) {
+        dlg.querySelector("#d-reset").onclick = function () {
+          dlg.querySelector("#persona").value = DEFAULT_PERSONA;
+        };
+        dlg.querySelector("#d-save").onclick = function () {
+          DB.persona = dlg.querySelector("#persona").value;
+          var k = dlg.querySelector("#f-key").value.trim();
+          if (k) DB.cfg.apiKey = k;
+          DB.cfg.baseUrl = dlg.querySelector("#f-base").value.trim() || "https://api.deepseek.com";
+          DB.cfg.model = dlg.querySelector("#f-model").value.trim() || "deepseek-chat";
+          save();
+          renderStatus();
+          closeModal();
+          toast("已保存");
+        };
+      }
+    });
+  }
+
+  /* ---- 清理 ---- */
+  function openClear() {
+    var isAll = DB.active === "all";
+    openModal({
+      title: "清理",
+      body:
+        '<div class="field"><label>范围</label><select id="c-scope">' +
+        '<option value="chat"' + (isAll ? " disabled" : "") + ">当前会话" + (isAll ? "（先在左边选一个）" : "") + "</option>" +
+        '<option value="all">全部会话</option></select></div>' +
+        '<div class="field"><label>清掉什么</label>' +
+        '<label class="chk"><input type="checkbox" id="c-display" checked> 屏幕记录（界面上的消息）</label>' +
+        '<label class="chk"><input type="checkbox" id="c-memory"> 长期记忆（摘要、事实、心情）</label>' +
+        "</div>" +
+        '<p class="muted">清屏不影响记忆；清记忆会删掉它记住的事，不能撤销。</p>',
+      foot: '<button class="btn danger" id="c-go">清理</button>',
+      onOpen: function (dlg) {
+        dlg.querySelector("#c-go").onclick = function () {
+          var scope = dlg.querySelector("#c-scope").value;
+          var display = dlg.querySelector("#c-display").checked;
+          var memory = dlg.querySelector("#c-memory").checked;
+          if (!display && !memory) { toast("至少勾一项"); return; }
+          if (memory && !confirm("清掉" + (scope === "all" ? "全部" : "这个") + "会话的记忆？不能撤销。")) return;
+
+          var targets = scope === "all" ? DB.chats.map(function (c) { return c.key; }) : [DB.active];
+
+          if (display) {
+            DB.lines = DB.lines.filter(function (l) {
+              return l.kind === "sys" || targets.indexOf(l.key) < 0;
+            });
+          }
+          if (memory) {
+            targets.forEach(function (k) {
+              DB.mem[k] = { summary: "", events: [], facts: [], mood: 60, count: 0 };
+            });
+          }
+          save();
+          renderChats();
+          renderLog(true);
+          closeModal();
+          toast("已清理");
+        };
+      }
+    });
+  }
+
+  /* ---- 关于 ---- */
+  function openAbout() {
+    openModal({
+      title: "关于 QQ BOT",
+      body:
+        '<div class="kv">' +
+        "<div>名称</div><div>QQ BOT（QQ 群聊拟人机器人）</div>" +
+        "<div>版本</div><div>网页版 " + BUILD + "（和桌面版同一套人设与逻辑）</div>" +
+        "<div>运行方式</div><div>纯前端，一个 HTML 文件；数据只存在这个浏览器里</div>" +
+        "<div>源码</div><div><a href=\"https://github.com/wtb15212515801-ops/qq-bot\" target=\"_blank\" rel=\"noopener\">github.com/wtb15212515801-ops/qq-bot</a></div>" +
+        "</div>" +
+        "<h4>用到的开源项目</h4>" +
+        '<div class="kv">' +
+        "<div>NapCatQQ</div><div>把 QQ 客户端包成 OneBot 11 接口（桌面版用）</div>" +
+        "<div>DeepSeek</div><div>对话与图片理解的大模型</div>" +
+        "<div>Node.js</div><div>桌面版机器人的运行环境</div>" +
+        "<div>WebView2</div><div>桌面版界面渲染（Windows 自带）</div>" +
+        "<div>OneBot 11</div><div>消息协议标准</div>" +
+        "</div>" +
+        "<h4>网页版能做什么</h4>" +
+        '<p class="muted">聊天、记忆、统计、设计、清理，和桌面版功能一致。<br>' +
+        "不做的两件事：不登录 QQ、不往群里发消息——那需要在你自己电脑上跑 NapCat。</p>"
+    });
+  }
+
+  /* ---------------- 事件 ---------------- */
+  $("m-mem").onclick = openMemory;
+  $("m-stats").onclick = openStats;
+  $("m-design").onclick = openDesign;
+  $("m-clear").onclick = openClear;
+  $("m-about").onclick = openAbout;
+
+  $("send").onclick = send;
+  $("box").addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+  });
+  $("box").addEventListener("input", function () {
+    this.style.height = "auto";
+    this.style.height = Math.min(110, this.scrollHeight) + "px";
+  });
+
+  $("level").onchange = function () {
+    DB.level = this.value;
+    save();
+    toast("频度：" + LEVELS[this.value].name);
+  };
+
+  $("q").oninput = function () {
+    var q = this.value.trim().toLowerCase();
+    Array.prototype.forEach.call($("chats").children, function (el) {
+      var hit = !q || el.textContent.toLowerCase().indexOf(q) >= 0;
+      el.style.display = hit ? "" : "none";
+    });
+  };
+
+  /* ---------------- 启动 ---------------- */
+  load();
+  $("level").value = DB.level || "normal";
+  renderStatus();
+  renderChats();
+  renderLog(true);
+
+  if (!DB.chats.some(function (c) { return c.key === DB.active; }) || DB.active === "all") {
+    // 默认选中第一个真实会话，省得还要点一下
+    var first = DB.chats[0];
+    if (first) {
+      DB.active = first.key;
+      save();
+      renderChats();
+      renderLog(true);
+    }
+  }
+
+  // 首次访问的欢迎
+  var seen = null;
+  try { seen = localStorage.getItem("qqbot.web.seen"); } catch (e) { seen = null; }
+  if (seen !== "1") {
+    openModal({
+      title: "欢迎",
+      body:
+        '<p style="margin:0 0 10px;line-height:1.9">这是 <b>天素罗</b> 的网页版，不用装 Node、WebView2、NapCat，打开就能聊。</p>' +
+        '<p class="muted" style="line-height:1.9">默认用本地规则回复；想换成真模型，在「设计」里填自己的 DeepSeek Key 就行，浏览器直连，不走代理。</p>',
+      foot: '<button class="btn" id="w-key">填 Key</button><button class="btn primary" id="w-go">直接开始</button>',
+      onOpen: function (dlg) {
+        dlg.querySelector("#w-go").onclick = function () {
+          try { localStorage.setItem("qqbot.web.seen", "1"); } catch (e) {}
+          closeModal();
+        };
+        dlg.querySelector("#w-key").onclick = function () {
+          try { localStorage.setItem("qqbot.web.seen", "1"); } catch (e) {}
+          closeModal();
+          openDesign();
+        };
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>
